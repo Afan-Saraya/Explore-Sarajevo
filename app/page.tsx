@@ -4,7 +4,7 @@ import FeaturedSection from "./Home/FeaturedSection";
 import { Business, Category } from "./lib/types";
 
 async function getData(): Promise<{ businesses: Business[]; categories: Category[] }> {
-  const res = await fetch("http://localhost:3000/api", {
+  const res = await fetch("https://mocki.io/v1/6dab6f30-9c77-4786-a0fb-d70e308216c1", {
     cache: "no-store",
   });
 
