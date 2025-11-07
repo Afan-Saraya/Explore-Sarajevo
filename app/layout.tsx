@@ -4,7 +4,7 @@ import Footer from "./components/Footer";
 import "leaflet/dist/leaflet.css";
 
 export const metadata = {
-  title: "Moja Aplikacija",
+  title: "Explore Sarajevo",
   description: "Next.js app sa Navbarom i Footerom",
 };
 
