@@ -1,0 +1,156 @@
+{
+  "businesses": [
+    {
+      "id": "1",
+      "name": "Kafeterija Tito",
+      "slug": "kafeterija-tito",
+      "categoryId": "coffee-shop",
+      "brandId": null,
+      "description": "Autentična sarajevska kafeterija s lokalnim prženjem kafe i vintage atmosferom.",
+      "address": "Maršala Tita 25, Sarajevo",
+      "location": "43.8563,18.4131",
+      "rating": 4.8,
+      "workingHours": "Pon–Ned: 08:00 – 23:00",
+      "images": [
+        "/assets/businesses/caffeTito.jpg",
+        "/images/businesses/tito-2.jpg"
+      ],
+      "phone": "+387 33 123 456",
+      "website": "https://kafeterijatito.ba",
+      "featuredBusiness": true
+    },
+    {
+      "id": "2",
+      "name": "Ćevabdžinica Željo",
+      "slug": "cevabdzinica-zeljo",
+      "categoryId": "restaurant",
+      "brandId": null,
+      "description": "Tradicionalni bosanski ćevapi u srcu Baščaršije.",
+      "address": "Kundurdžiluk 20, Sarajevo",
+      "location": "43.8590,18.4315",
+      "rating": 4.7,
+      "workingHours": "Pon–Ned: 09:00 – 00:00",
+      "images": [
+        "/assets/businesses/cevabdzinicaZeljo.jpg",
+        "/images/businesses/zeljo-2.jpg"
+      ],
+      "phone": "+387 33 987 654",
+      "website": "https://zeljo.ba",
+      "featuredBusiness": true
+    },
+    {
+      "id": "3",
+      "name": "Hotel Europe",
+      "slug": "hotel-europe",
+      "categoryId": "hotel",
+      "brandId": "europe-hotels",
+      "description": "Luksuzni hotel sa pet zvjezdica u centru Sarajeva.",
+      "address": "Vladislava Skarića 5, Sarajevo",
+      "location": "43.8587,18.4292",
+      "rating": 4.6,
+      "workingHours": "24/7",
+      "images": [
+        "/assets/businesses/hotelEvropa.jpg",
+        "/images/businesses/europe-2.jpg",
+        "/images/businesses/europe-3.jpg"
+      ],
+      "phone": "+387 33 580 400",
+      "website": "https://hoteleurope.ba",
+      "featuredBusiness": true
+    },
+    {
+      "id": "4",
+      "name": "dm Drogerie Markt",
+      "slug": "dm-drogerie-markt",
+      "categoryId": "store",
+      "brandId": "dm",
+      "description": "Drogerija i kozmetika sa širokim izborom brendova.",
+      "address": "BBI Centar, Trg djece Sarajeva 1, Sarajevo",
+      "location": "43.8578,18.4129",
+      "rating": 4.5,
+      "workingHours": "Pon–Sub: 09:00 – 21:00, Ned: 10:00 – 18:00",
+      "images": [
+        "/assets/businesses/dmDrogerie.jpg"
+      ],
+      "phone": "+387 33 712 300",
+      "website": "https://dm.hr",
+      "featuredBusiness": true
+    },
+    {
+      "id": "5",
+      "name": "SarayArt Studio",
+      "slug": "sarayart-studio",
+      "categoryId": "art-gallery",
+      "brandId": null,
+      "description": "Savremena galerija lokalnih umjetnika s izložbenim prostorom.",
+      "address": "Zelenih beretki 12, Sarajevo",
+      "location": "43.8581,18.4290",
+      "rating": 4.9,
+      "workingHours": "Pon–Pet: 10:00 – 19:00",
+      "images": [
+        "/images/businesses/sarayArt.jpg"
+      ],
+      "phone": "+387 33 555 222",
+      "website": "https://sarayart.ba",
+      "featuredBusiness": false
+    }
+  ],
+  "categories": [
+    {
+      "id": "restaurant",
+      "name": "Restorani",
+      "slug": "restorani",
+      "description": "Uživajte u tradicionalnoj i modernoj gastronomiji Sarajeva.",
+      "coverImage": "/assets/categories/restorani.jpg"
+    },
+    {
+      "id": "coffee-shop",
+      "name": "Kafići",
+      "slug": "kafici",
+      "description": "Opustite se uz miris svježe kafe u najpoznatijim sarajevskim kafeterijama.",
+      "coverImage": "/assets/categories/kafici.jpg"
+    },
+    {
+      "id": "hotel",
+      "name": "Hoteli",
+      "slug": "hoteli",
+      "description": "Smještaj za svaku priliku – od luksuza do boutique hotela.",
+      "coverImage": "/assets/categories/hoteli.jpg"
+    },
+    {
+      "id": "store",
+      "name": "Prodavnice",
+      "slug": "prodavnice",
+      "description": "Mjesta za kupovinu poznatih brendova i lokalnih proizvoda.",
+      "coverImage": "/assets/categories/prodavnice.jpg"
+    },
+    {
+      "id": "art-gallery",
+      "name": "Umjetnost i galerije",
+      "slug": "umjetnost-galerije",
+      "description": "Istražite kreativnu stranu Sarajeva kroz galerije i umjetničke prostore.",
+      "coverImage": "/assets/categories/galerije.jpg"
+    },
+    {
+      "id": "beauty-spa",
+      "name": "Ljepota & spa",
+      "slug": "ljepota-spa",
+      "description": "Istražite kreativnu stranu Sarajeva kroz galerije i umjetničke prostore.",
+      "coverImage": "/assets/categories/spa.jpg"
+    },
+    {
+      "id": "museums",
+      "name": "Muzeji",
+      "slug": "muzeji",
+      "description": "Istražite kreativnu stranu Sarajeva kroz galerije i umjetničke prostore.",
+      "coverImage": "/assets/categories/muzeji.jpg"
+    },
+    {
+      "id": "asdasd",
+      "name": "Muzeji",
+      "slug": "muzeji",
+      "description": "Istražite kreativnu stranu Sarajeva kroz galerije i umjetničke prostore.",
+      "coverImage": "/assets/categories/muzeji.jpg"
+    }
+  ]
+}
