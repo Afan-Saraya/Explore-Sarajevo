@@ -1,36 +1,40 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Business } from "../lib/types";
-import { MapPin, Phone, ArrowRight } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface Props {
   businesses: Business[];
+  brandName: string; // 👈 novi prop
 }
 
-export default function CategorySection({ businesses }: Props) {
+export default function DistrictSection({ businesses, brandName }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
 
+  // Update vremena svake minute
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // 🔹 Filtriraj samo featured biznise
-  const featuredBusinesses = businesses.filter((b) => b.featuredBusiness === true);
+  // ✅ Filtriraj samo biznise koji imaju brandName isti kao prop
+  const filteredByBrand = businesses.filter(
+    (b) => b.brandId?.toLowerCase() === brandName.toLowerCase()
+  );
 
-  // 🔹 Dodatni filter po kategoriji (ako postoji)
   const filteredBusinesses = selectedCategory
-    ? featuredBusinesses.filter((b) => b.slug === selectedCategory)
-    : featuredBusinesses;
+    ? filteredByBrand.filter((b) => b.slug === selectedCategory)
+    : filteredByBrand;
 
+  // Flip animacija
   useEffect(() => {
+    if (filteredBusinesses.length === 0) return;
     const flipInterval = setInterval(() => {
       setTimeout(() => {
         setVisibleIndex((prev) => (prev + 4) % filteredBusinesses.length);
@@ -43,29 +47,28 @@ export default function CategorySection({ businesses }: Props) {
     return () => clearInterval(flipInterval);
   }, [filteredBusinesses.length]);
 
+  // Provjera da li je otvoreno
   function isOpenNow(workingHours?: string) {
     if (!workingHours) return false;
-    const currentTime = new Date();
-    const nowH = currentTime.getHours();
-    const nowM = currentTime.getMinutes();
+    const now = new Date();
     const [start, end] = workingHours.split("-");
     if (!start || !end) return false;
-    const [startH, startM] = start.split(":").map(Number);
-    const [endH, endM] = end.split(":").map(Number);
-    const startTotal = startH * 60 + startM;
-    const endTotal = endH * 60 + endM;
-    const nowTotal = nowH * 60 + nowM;
-    return nowTotal >= startTotal && nowTotal <= endTotal;
+    const [sh, sm] = start.split(":").map(Number);
+    const [eh, em] = end.split(":").map(Number);
+    const totalNow = now.getHours() * 60 + now.getMinutes();
+    const totalStart = sh * 60 + sm;
+    const totalEnd = eh * 60 + em;
+    return totalNow >= totalStart && totalNow <= totalEnd;
   }
 
   const visibleBusinesses = filteredBusinesses.slice(visibleIndex, visibleIndex + 4);
 
   return (
     <div className="mt-5 text-black md:text-start text-center">
-      <h5 className="p-5 font-bold text-[5vh]">Preporučujemo</h5>
+      <Image className="p-5" src="/assets/visitBjelasnicaLogo.png" width={400} height={40} alt="" />
 
       {/* Filter dugmad */}
-      {featuredBusinesses.length > 1 && (
+      {filteredBusinesses.length > 1 && (
         <div className="flex flex-wrap justify-center gap-3 mb-12">
           <button
             onClick={() => setSelectedCategory(null)}
@@ -77,7 +80,7 @@ export default function CategorySection({ businesses }: Props) {
           >
             Sve
           </button>
-          {featuredBusinesses.map((b) => (
+          {filteredBusinesses.map((b) => (
             <button
               key={b.id}
               onClick={() => setSelectedCategory(b.slug)}
@@ -96,13 +99,13 @@ export default function CategorySection({ businesses }: Props) {
       {/* Grid kartica */}
       <div
         className="
-        grid 
-        md:grid-cols-3 gap-2 md:gap-10
-        grid-cols-2 max-sm:grid-cols-2
-        overflow-x-auto md:overflow-visible 
-        snap-x snap-mandatory
-        scrollbar-hide
-      "
+          grid 
+          md:grid-cols-3 gap-2 md:gap-10
+          grid-cols-2 max-sm:grid-cols-2
+          overflow-x-auto md:overflow-visible 
+          snap-x snap-mandatory
+          scrollbar-hide
+        "
       >
         {visibleBusinesses.map((b, index) => {
           const pairIndex = Math.floor(index / 2);
@@ -111,14 +114,15 @@ export default function CategorySection({ businesses }: Props) {
             (isEvenRow && index % 2 === 0) || (!isEvenRow && index % 2 === 1);
           const isWideMobile = index % 3 === 0;
 
+          const backIndex = (visibleIndex + index + 4) % filteredBusinesses.length;
+          const backBiz = filteredBusinesses[backIndex];
+
           return (
             <div
               key={b.id}
-              className={`
-                perspective-1000 relative border border-gray-200 rounded-2xl snap-center
+              className={`perspective-1000 relative border border-gray-200 rounded-2xl snap-center
                 ${isWideDesktop ? "md:col-span-2" : "md:col-span-1"}
-                ${isWideMobile ? "col-span-2" : "col-span-1"}
-              `}
+                ${isWideMobile ? "col-span-2" : "col-span-1"}`}
             >
               <motion.div
                 animate={{ rotateY: flipped ? 180 : 0 }}
@@ -142,7 +146,9 @@ export default function CategorySection({ businesses }: Props) {
                         <span>{b.address}</span>
                       </div>
                       <span
-                        className={`text-[1.3vh] font-semibold ${isOpenNow(b.workingHours) ? "text-green-400" : "text-red-500"}`}
+                        className={`text-[1.3vh] font-semibold ${
+                          isOpenNow(b.workingHours) ? "text-green-400" : "text-red-500"
+                        }`}
                       >
                         {isOpenNow(b.workingHours) ? "Open Now" : "Closed Now"}
                       </span>
@@ -150,48 +156,29 @@ export default function CategorySection({ businesses }: Props) {
                   </div>
                 </div>
 
-                {/* Stražnja strana (novi biznis) */}
-                {filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length] && (
+                {/* Stražnja strana */}
+                {backBiz && (
                   <div className="absolute w-full h-full rotateY-180 backface-hidden">
                     <Image
-                      src={
-                        filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length].images[0] ||
-                        "https://dummyimage.com/720x540"
-                      }
-                      alt={
-                        filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length].name
-                      }
+                      src={backBiz.images[0] || "https://dummyimage.com/720x540"}
+                      alt={backBiz.name}
                       fill
                       className="object-cover w-full h-full rounded-2xl"
                     />
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/80 to-transparent p-4 flex flex-col gap-2 text-white rounded-b-2xl">
-                      <h3 className="text-[2vh] font-semibold">
-                        {filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length].name}
-                      </h3>
-                      <div className="flex items-center gap-2 text-[1.3vh] opacity-90">
-                        {filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length].categoryId}
-                      </div>
+                      <h3 className="text-[2vh] font-semibold">{backBiz.name}</h3>
+                      <div className="flex items-center gap-2 text-[1.3vh] opacity-90">{backBiz.categoryId}</div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-[1.3vh] opacity-90">
                           <MapPin className="w-4 h-4" />
-                          <span>
-                            {filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length].address}
-                          </span>
+                          <span>{backBiz.address}</span>
                         </div>
                         <span
                           className={`text-[1.3vh] font-semibold ${
-                            isOpenNow(
-                              filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length].workingHours
-                            )
-                              ? "text-green-400"
-                              : "text-red-500"
+                            isOpenNow(backBiz.workingHours) ? "text-green-400" : "text-red-500"
                           }`}
                         >
-                          {isOpenNow(
-                            filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length].workingHours
-                          )
-                            ? "Open Now"
-                            : "Closed Now"}
+                          {isOpenNow(backBiz.workingHours) ? "Open Now" : "Closed Now"}
                         </span>
                       </div>
                     </div>

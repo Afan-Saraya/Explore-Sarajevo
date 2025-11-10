@@ -5,6 +5,7 @@
       "name": "Kafeterija Tito",
       "slug": "kafeterija-tito",
       "categoryId": "coffee-shop",
+      "parentCategoryId": "food-drink",
       "brandId": null,
       "description": "Autentična sarajevska kafeterija s lokalnim prženjem kafe i vintage atmosferom.",
       "address": "Maršala Tita 25, Sarajevo",
@@ -12,8 +13,7 @@
       "rating": 4.8,
       "workingHours": "Pon–Ned: 08:00 – 23:00",
       "images": [
-        "/assets/businesses/caffeTito.jpg",
-        "/images/businesses/tito-2.jpg"
+        "/assets/businesses/caffeTito.jpg"
       ],
       "phone": "+387 33 123 456",
       "website": "https://kafeterijatito.ba",
@@ -24,6 +24,7 @@
       "name": "Ćevabdžinica Željo",
       "slug": "cevabdzinica-zeljo",
       "categoryId": "restaurant",
+      "parentCategoryId": "food-drink",
       "brandId": null,
       "description": "Tradicionalni bosanski ćevapi u srcu Baščaršije.",
       "address": "Kundurdžiluk 20, Sarajevo",
@@ -31,8 +32,7 @@
       "rating": 4.7,
       "workingHours": "Pon–Ned: 09:00 – 00:00",
       "images": [
-        "/assets/businesses/cevabdzinicaZeljo.jpg",
-        "/images/businesses/zeljo-2.jpg"
+        "/assets/businesses/cevabdzinicaZeljo.jpg"
       ],
       "phone": "+387 33 987 654",
       "website": "https://zeljo.ba",
@@ -43,6 +43,7 @@
       "name": "Hotel Europe",
       "slug": "hotel-europe",
       "categoryId": "hotel",
+      "parentCategoryId": "accommodation",
       "brandId": "europe-hotels",
       "description": "Luksuzni hotel sa pet zvjezdica u centru Sarajeva.",
       "address": "Vladislava Skarića 5, Sarajevo",
@@ -50,9 +51,7 @@
       "rating": 4.6,
       "workingHours": "24/7",
       "images": [
-        "/assets/businesses/hotelEvropa.jpg",
-        "/images/businesses/europe-2.jpg",
-        "/images/businesses/europe-3.jpg"
+        "/assets/businesses/hotelEvropa.jpg"
       ],
       "phone": "+387 33 580 400",
       "website": "https://hoteleurope.ba",
@@ -62,7 +61,8 @@
       "id": "4",
       "name": "dm Drogerie Markt",
       "slug": "dm-drogerie-markt",
-      "categoryId": "store",
+      "categoryId": "pharmacy",
+      "parentCategoryId": "health",
       "brandId": "dm",
       "description": "Drogerija i kozmetika sa širokim izborom brendova.",
       "address": "BBI Centar, Trg djece Sarajeva 1, Sarajevo",
@@ -81,6 +81,7 @@
       "name": "SarayArt Studio",
       "slug": "sarayart-studio",
       "categoryId": "art-gallery",
+      "parentCategoryId": "activities",
       "brandId": null,
       "description": "Savremena galerija lokalnih umjetnika s izložbenim prostorom.",
       "address": "Zelenih beretki 12, Sarajevo",
@@ -88,69 +89,470 @@
       "rating": 4.9,
       "workingHours": "Pon–Pet: 10:00 – 19:00",
       "images": [
-        "/images/businesses/sarayArt.jpg"
+        "/assets/businesses/sarayArt.jpg"
       ],
       "phone": "+387 33 555 222",
       "website": "https://sarayart.ba",
+      "featuredBusiness": true
+    },
+    {
+      "id": "6",
+      "name": "FUKA Specialty Coffee & Smart",
+      "slug": "fuka-specialty-coffee-smart",
+      "categoryId": "coffee-shop",
+      "parentCategoryId": "food-drinks",
+      "brandId": null,
+      "description": "Specialty coffee s modernim ambijentom i pametnim tehnologijama.",
+      "address": "Ferhadija 8, Sarajevo",
+      "location": "43.8563,18.4131",
+      "rating": 4.7,
+      "workingHours": "Pon–Ned: 08:00 – 22:00",
+      "images": [
+        "/assets/businesses/fuka.jpg"
+      ],
+      "phone": "+387 61 123 456",
+      "website": "https://fukacoffee.ba",
+      "featuredBusiness": true
+    },
+    {
+      "id": "7",
+      "name": "Ćevabdžinica Kurto",
+      "slug": "cevabdzinca-kurto",
+      "categoryId": "restaurant",
+      "parentCategoryId": "food-drinks",
+      "brandId": null,
+      "description": "Tradicionalni ćevapi s domaćim prilozima i autentičnim okusom.",
+      "address": "Hamdije Kreševljakovića 5, Sarajevo",
+      "location": "43.8567,18.4145",
+      "rating": 4.8,
+      "workingHours": "Pon–Ned: 10:00 – 23:00",
+      "images": [
+        "/assets/businesses/kurto.jpg"
+      ],
+      "phone": "+387 33 654 321",
+      "website": "https://cevabdzinica-kurto.ba",
+      "featuredBusiness": true
+    },
+    {
+      "id": "8",
+      "name": "Pizzeria Montana",
+      "slug": "pizzeria-montana",
+      "categoryId": "pizzeria",
+      "parentCategoryId": "food-drinks",
+      "brandId": null,
+      "description": "Prava italijanska pizza pripremljena po originalnim receptima.",
+      "address": "Titova 20, Sarajevo",
+      "location": "43.8575,18.4210",
+      "rating": 4.6,
+      "workingHours": "Pon–Ned: 11:00 – 23:00",
+      "images": [
+        "/assets/businesses/montana.jpg"
+      ],
+      "phone": "+387 33 987 654",
+      "website": "https://pizzeriamontana.ba",
+      "featuredBusiness": true
+    },
+    {
+      "id": "9",
+      "name": "Cycling Tours to the Villages of Bjelašnica and Igman – Short",
+      "slug": "cycling-bjelasnica-igman-short",
+      "categoryId": "activities",
+      "parentCategoryId": "cycling",
+      "brandId": "visit-bjelanica",
+      "description": "Kratka biciklistička tura kroz sela Bjelašnice i Igmana.",
+      "address": "Bjelašnica, Sarajevo",
+      "location": "43.8012,18.2864",
+      "rating": 4.7,
+      "workingHours": "Pon–Ned: 08:00 – 18:00",
+      "images": [
+        "/assets/businesses/biziklizamVB.jpg"
+      ],
+      "phone": "+387 61 234 567",
+      "website": "https://visitbjelanica.ba",
+      "featuredBusiness": false
+    },
+    {
+      "id": "10",
+      "name": "Cycling Tours to the Villages of Bjelašnica and Igman – Basic",
+      "slug": "cycling-bjelasnica-igman-basic",
+      "categoryId": "activities",
+      "parentCategoryId": "cycling",
+      "brandId": "visit-bjelanica",
+      "description": "Osnovna biciklistička tura kroz sela Bjelašnice i Igmana.",
+      "address": "Bjelašnica, Sarajevo",
+      "location": "43.8012,18.2864",
+      "rating": 4.6,
+      "workingHours": "Pon–Ned: 08:00 – 18:00",
+      "images": [
+        "/assets/businesses/biziklizamVB.jpg"
+      ],
+      "phone": "+387 61 234 567",
+      "website": "https://visitbjelanica.ba",
+      "featuredBusiness": false
+    },
+    {
+      "id": "11",
+      "name": "Cycling Tours to the Villages of Bjelašnica and Igman – Half Day",
+      "slug": "cycling-bjelasnica-igman-halfday",
+      "categoryId": "activities",
+      "parentCategoryId": "cycling",
+      "brandId": "visit-bjelanica",
+      "description": "Poludnevna biciklistička tura kroz sela Bjelašnice i Igmana.",
+      "address": "Bjelašnica, Sarajevo",
+      "location": "43.8012,18.2864",
+      "rating": 4.7,
+      "workingHours": "Pon–Ned: 08:00 – 18:00",
+      "images": [
+        "/assets/businesses/biziklizamVB.jpg"
+      ],
+      "phone": "+387 61 234 567",
+      "website": "https://visitbjelanica.ba",
+      "featuredBusiness": false
+    },
+    {
+      "id": "12",
+      "name": "Eat Pray Love",
+      "slug": "eat-pray-love",
+      "categoryId": "activities",
+      "parentCategoryId": "gastronomy",
+      "brandId": "visit-bjelanica",
+      "description": "Kulturno-gastronomsko iskustvo kroz lokalne običaje i kuhinju.",
+      "address": "Sarajevo",
+      "location": "43.8563,18.4131",
+      "rating": 4.8,
+      "workingHours": "Pon–Ned: 10:00 – 20:00",
+      "images": [
+        "/assets/businesses/eatPrayLove.jpg"
+      ],
+      "phone": "+387 61 345 678",
+      "website": "https://visitbjelanica.ba",
+      "featuredBusiness": false
+    },
+    {
+      "id": "13",
+      "name": "City Tour of Sarajevo",
+      "slug": "city-tour-sarajevo",
+      "categoryId": "activities",
+      "parentCategoryId": "sightseeing",
+      "brandId": "visit-bjelanica",
+      "description": "Obilazak najvažnijih gradskih znamenitosti Sarajeva.",
+      "address": "Sarajevo",
+      "location": "43.8563,18.4131",
+      "rating": 4.9,
+      "workingHours": "Pon–Ned: 09:00 – 18:00",
+      "images": [
+        "/assets/businesses/cityTour.jpg"
+      ],
+      "phone": "+387 61 456 789",
+      "website": "https://visitbjelanica.ba",
+      "featuredBusiness": false
+    },
+    {
+      "id": "14",
+      "name": "Tour C5. “Canyoning Rakitnica”",
+      "slug": "canyoning-rakitnica",
+      "categoryId": "activities",
+      "parentCategoryId": "adventure",
+      "brandId": "visit-bjelanica",
+      "description": "Ekstremni canyoning u kanjonu rijeke Rakitnice s profesionalnim vodičem.",
+      "address": "Rakitnica, Konjic",
+      "location": "43.6730,17.9480",
+      "rating": 4.9,
+      "workingHours": "Pon–Ned: 08:00 – 18:00",
+      "images": [
+        "/assets/businesses/c5.jpg"
+      ],
+      "phone": "+387 61 789 012",
+      "website": "https://visitbjelanica.ba",
+      "featuredBusiness": false
+    },
+    {
+      "id": "15",
+      "name": "Tura VF 4. “Via Ferrata Kotlovi”",
+      "slug": "via-ferrata-kotlovi",
+      "categoryId": "activities",
+      "parentCategoryId": "adventure",
+      "brandId": "visit-bjelanica",
+      "description": "Avanturistička tura kroz stijene i kanjone sa sigurnosnom opremom.",
+      "address": "Bjelašnica",
+      "location": "43.8012,18.2864",
+      "rating": 4.8,
+      "workingHours": "Pon–Ned: 08:00 – 17:00",
+      "images": [
+        "/assets/businesses/vf4.jpg"
+      ],
+      "phone": "+387 61 678 901",
+      "website": "https://visitbjelanica.ba",
+      "featuredBusiness": false
+    },
+    {
+      "id": "16",
+      "name": "Tour T3. “Nomad’s Tour”",
+      "slug": "tour-t3-nomads",
+      "categoryId": "activities",
+      "parentCategoryId": "guided-tours",
+      "brandId": "visit-bjelanica",
+      "description": "Tematska tura s vodičem koja pokazuje skrivene kutke Sarajeva i okoline.",
+      "address": "Sarajevo",
+      "location": "43.8563,18.4131",
+      "rating": 4.7,
+      "workingHours": "Pon–Ned: 09:00 – 17:00",
+      "images": [
+        "/assets/businesses/nomadsTour.jpg"
+      ],
+      "phone": "+387 61 567 890",
+      "website": "https://visitbjelanica.ba",
       "featuredBusiness": false
     }
   ],
+  "attractive_locations": [
+    [
+      {
+        "id": "1",
+        "name": "Baščaršija",
+        "slug": "bascarsija",
+        "categoryId": "history",
+        "description": "Stari dio Sarajeva s tradicionalnim bazarima, kafićima i zanatskim radnjama.",
+        "address": "Baščaršija, Sarajevo",
+        "location": "43.8594,18.4303",
+        "images": [
+          "/assets/attractions/bascarsija.jpg"
+        ],
+        "featuredLocation": true
+      },
+      {
+        "id": "2",
+        "name": "Bob staza",
+        "slug": "bob-staza",
+        "categoryId": "adventure",
+        "description": "Atrakcija zimskih sportova i bob staza s olimpijskom tradicijom.",
+        "address": "Igman, Sarajevo",
+        "location": "43.8150,18.2810",
+        "images": [
+          "/assets/attractions/bob-staza.jpg"
+        ],
+        "featuredLocation": true
+      },
+      {
+        "id": "3",
+        "name": "Mjesto gdje se spajaju Istok i Zapad",
+        "slug": "spajanje-istok-zapad",
+        "categoryId": "sightseeing",
+        "description": "Simbolična lokacija u Sarajevu gdje se susreću različite kulture i tradicije.",
+        "address": "Sarajevo",
+        "location": "43.8563,18.4131",
+        "images": [
+          "/assets/attractions/istok-zapad.jpg"
+        ],
+        "featuredLocation": true
+      },
+      {
+        "id": "4",
+        "name": "Tunel spasa",
+        "slug": "tunel-spasa",
+        "categoryId": "history",
+        "description": "Tunel iz vremena opsade Sarajeva, danas muzej koji svjedoči istoriji.",
+        "address": "Dobrinja, Sarajevo",
+        "location": "43.8560,18.3840",
+        "images": [
+          "/assets/attractions/tunel-spasa.jpeg"
+        ],
+        "featuredLocation": true
+      },
+      {
+        "id": "5",
+        "name": "Vječna vatra",
+        "slug": "vjecna-vatra",
+        "categoryId": "history",
+        "description": "Simbol grada Sarajeva, vječna vatra upaljena u znak sjećanja na stradanja iz Drugog svjetskog rata.",
+        "address": "Titova, Sarajevo",
+        "location": "43.8565,18.4130",
+        "images": [
+          "/assets/attractions/vjecna-vatra.jpg"
+        ],
+        "featuredLocation": true
+      },
+      {
+        "id": "6",
+        "name": "Vrelo Bosne",
+        "slug": "vrelo-bosne",
+        "categoryId": "nature",
+        "description": "Izvor rijeke Bosne okružen zelenim parkom, idealan za šetnju i rekreaciju.",
+        "address": "Ilidža, Sarajevo",
+        "location": "43.8115,18.3201",
+        "images": [
+          "/assets/attractions/vrelo-bosne.jpg"
+        ],
+        "featuredLocation": true
+      },
+      {
+        "id": "7",
+        "name": "Žičara",
+        "slug": "zicara",
+        "categoryId": "adventure",
+        "description": "Žičara koja vodi do planine Trebević, pruža panoramski pogled na Sarajevo.",
+        "address": "Sarajevo",
+        "location": "43.8560,18.4320",
+        "images": [
+          "/assets/attractions/zicara.jpg"
+        ],
+        "featuredLocation": true
+      },
+      {
+        "id": "8",
+        "name": "Zmajevac",
+        "slug": "zmajevac",
+        "categoryId": "nature",
+        "description": "Planinski vrh popularan za planinarenje i biciklističke ture.",
+        "address": "Bjelašnica",
+        "location": "43.8050,18.2800",
+        "images": [
+          "/assets/attractions/zmajevac.jpg"
+        ],
+        "featuredLocation": true
+      }
+    ]
+  ],
   "categories": [
     {
-      "id": "restaurant",
-      "name": "Restorani",
-      "slug": "restorani",
-      "description": "Uživajte u tradicionalnoj i modernoj gastronomiji Sarajeva.",
-      "coverImage": "/assets/categories/restorani.jpg"
+      "id": "activities",
+      "name": "Activities",
+      "slug": "activities",
+      "description": "Doživite Sarajevo kroz razne aktivnosti i iskustva.",
+      "coverImage": "/assets/categories/activities.jpg",
+      "subcategories": [
+        {
+          "id": "art-gallery",
+          "name": "Umjetnost i galerije",
+          "slug": "umjetnost-galerije"
+        },
+        {
+          "id": "museums",
+          "name": "Muzeji",
+          "slug": "muzeji"
+        },
+        {
+          "id": "tours",
+          "name": "Ture i razgledanja",
+          "slug": "ture"
+        },
+        {
+          "id": "adventure",
+          "name": "Avanture i priroda",
+          "slug": "avanture"
+        }
+      ]
     },
     {
-      "id": "coffee-shop",
-      "name": "Kafići",
-      "slug": "kafici",
-      "description": "Opustite se uz miris svježe kafe u najpoznatijim sarajevskim kafeterijama.",
-      "coverImage": "/assets/categories/kafici.jpg"
+      "id": "events",
+      "name": "Events",
+      "slug": "events",
+      "description": "Aktuelni događaji, festivali i kulturna dešavanja.",
+      "coverImage": "/assets/categories/events.jpg",
+      "subcategories": [
+        {
+          "id": "concerts",
+          "name": "Koncerti",
+          "slug": "koncerti"
+        },
+        {
+          "id": "festivals",
+          "name": "Festivali",
+          "slug": "festivali"
+        },
+        {
+          "id": "theatre",
+          "name": "Pozorište",
+          "slug": "pozoriste"
+        }
+      ]
     },
     {
-      "id": "hotel",
-      "name": "Hoteli",
-      "slug": "hoteli",
-      "description": "Smještaj za svaku priliku – od luksuza do boutique hotela.",
-      "coverImage": "/assets/categories/hoteli.jpg"
+      "id": "food-drink",
+      "name": "Food & Drink",
+      "slug": "food-drink",
+      "description": "Otkrijte ukus Sarajeva kroz hranu i piće.",
+      "coverImage": "/assets/categories/food-drink.jpg",
+      "subcategories": [
+        {
+          "id": "restaurant",
+          "name": "Restorani",
+          "slug": "restorani"
+        },
+        {
+          "id": "coffee-shop",
+          "name": "Kafići",
+          "slug": "kafici"
+        },
+        {
+          "id": "bars",
+          "name": "Barovi",
+          "slug": "barovi"
+        },
+        {
+          "id": "bakeries",
+          "name": "Pekare",
+          "slug": "pekare"
+        },
+        {
+          "id": "desserts",
+          "name": "Poslastičarnice",
+          "slug": "poslasticarnice"
+        }
+      ]
     },
     {
-      "id": "store",
-      "name": "Prodavnice",
-      "slug": "prodavnice",
-      "description": "Mjesta za kupovinu poznatih brendova i lokalnih proizvoda.",
-      "coverImage": "/assets/categories/prodavnice.jpg"
+      "id": "accommodation",
+      "name": "Accommodation",
+      "slug": "accommodation",
+      "description": "Smještaj za svaku priliku – od hotela do apartmana.",
+      "coverImage": "/assets/categories/accommodation.jpg",
+      "subcategories": [
+        {
+          "id": "hotel",
+          "name": "Hoteli",
+          "slug": "hoteli"
+        },
+        {
+          "id": "apartments",
+          "name": "Apartmani",
+          "slug": "apartmani"
+        },
+        {
+          "id": "hostels",
+          "name": "Hosteli",
+          "slug": "hosteli"
+        }
+      ]
     },
     {
-      "id": "art-gallery",
-      "name": "Umjetnost i galerije",
-      "slug": "umjetnost-galerije",
-      "description": "Istražite kreativnu stranu Sarajeva kroz galerije i umjetničke prostore.",
-      "coverImage": "/assets/categories/galerije.jpg"
-    },
-    {
-      "id": "beauty-spa",
-      "name": "Ljepota & spa",
-      "slug": "ljepota-spa",
-      "description": "Istražite kreativnu stranu Sarajeva kroz galerije i umjetničke prostore.",
-      "coverImage": "/assets/categories/spa.jpg"
-    },
-    {
-      "id": "museums",
-      "name": "Muzeji",
-      "slug": "muzeji",
-      "description": "Istražite kreativnu stranu Sarajeva kroz galerije i umjetničke prostore.",
-      "coverImage": "/assets/categories/muzeji.jpg"
-    },
-    {
-      "id": "asdasd",
-      "name": "Muzeji",
-      "slug": "muzeji",
-      "description": "Istražite kreativnu stranu Sarajeva kroz galerije i umjetničke prostore.",
-      "coverImage": "/assets/categories/muzeji.jpg"
+      "id": "health",
+      "name": "Health",
+      "slug": "health",
+      "description": "Zdravlje, wellness i ljepota.",
+      "coverImage": "/assets/categories/health.jpg",
+      "subcategories": [
+        {
+          "id": "pharmacy",
+          "name": "Apoteke",
+          "slug": "apoteke"
+        },
+        {
+          "id": "beauty-spa",
+          "name": "Ljepota & Spa",
+          "slug": "ljepota-spa"
+        },
+        {
+          "id": "clinics",
+          "name": "Klinike",
+          "slug": "klinike"
+        },
+        {
+          "id": "fitness",
+          "name": "Fitness & Wellness",
+          "slug": "fitness"
+        }
+      ]
     }
   ]
 }

@@ -1,10 +1,14 @@
 import Hero from "./Home/Hero";
 import CategorySection from "./Home/CategorySection";
 import FeaturedSection from "./Home/FeaturedSection";
-import { Business, Category } from "./lib/types";
+import { AttractiveLocation, Business, Category } from "./lib/types";
+import OurMission from "./Home/OurMission";
+import DistrictSection from "./Home/DistricSection";
+import OurPlace from "./Home/OurPlace";
+import AttractiveLocations from "./Home/AttractiveLocations";
 
-async function getData(): Promise<{ businesses: Business[]; categories: Category[] }> {
-  const res = await fetch("https://mocki.io/v1/6dab6f30-9c77-4786-a0fb-d70e308216c1", {
+async function getData(): Promise<{ businesses: Business[]; categories: Category[]; attractive_locations: AttractiveLocation[] }> {
+  const res = await fetch("https://mocki.io/v1/e38e9fbd-023a-4274-8d94-980dbf137239", {
     cache: "no-store",
   });
 
@@ -16,11 +20,12 @@ async function getData(): Promise<{ businesses: Business[]; categories: Category
   return {
     businesses: data.businesses,
     categories: data.categories,
+    attractive_locations: data.attractive_locations
   };
 }
 
 export default async function HomePage() {
-  const { businesses, categories } = await getData();
+  const { businesses, categories, attractive_locations } = await getData();
 
   // prikazuj samo featured biznise
   const featured = businesses.filter((b) => b.featuredBusiness);
@@ -28,9 +33,18 @@ export default async function HomePage() {
   return (
     <div className="bg-white">
       <Hero />
-      <section className="max-w-7xl mx-auto px-6 md:px-10 py-4 bg-white overflow-hidden">
+      <section className="max-w-7xl mx-auto px-6 md:px-10 py-14 bg-white overflow-hidden">
         <CategorySection categories={categories} />
         <FeaturedSection businesses={businesses} />
+      </section>
+      <OurMission />
+      <div style={{ backgroundImage: 'url("/assets/visitBjelasnica.jpg")' }}>
+        <section className="max-w-7xl mx-auto px-6 md:px-10 py-14 overflow-hidden">
+          <DistrictSection businesses={businesses} brandName="visit-bjelanica" />
+        </section>
+      </div>
+      <OurPlace />
+      <section className="max-w-7xl mx-auto px-6 md:px-10 py-14 overflow-hidden">
       </section>
     </div>
   );
