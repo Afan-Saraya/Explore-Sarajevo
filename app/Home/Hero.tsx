@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Coffee, MapPin, Utensils, Camera } from "lucide-react";
+import { Coffee, MapPin, Utensils, Camera, BedDouble, Bike, PartyPopper, ShieldPlus } from "lucide-react";
 
 export default function Hero() {
   return (
@@ -35,21 +35,25 @@ export default function Hero() {
 
         {/* Lista s ikonama */}
         <ul className="flex gap-[4vh] text-[2.5vh] text-white">
-          <li className="flex flex-col items-center gap-[0.8vh] cursor-pointer hover:text-yellow-400 transition">
-            <Coffee className="w-[3vh] h-[3vh]" />
-            <span className="text-[1.5vh]">Kafići</span>
+          <li className="flex flex-col items-center gap-[0.8vh] cursor-pointer hover:text-purple-400 transition">
+            <Bike className="w-[3vh] h-[3vh]" />
+            <span className="text-[1.5vh]">Activities</span>
           </li>
-          <li className="flex flex-col items-center gap-[0.8vh] cursor-pointer hover:text-yellow-400 transition">
+          <li className="flex flex-col items-center gap-[0.8vh] cursor-pointer hover:text-purple-400 transition">
+            <PartyPopper className="w-[3vh] h-[3vh]" />
+            <span className="text-[1.5vh]">Events</span>
+          </li>
+          <li className="flex flex-col items-center gap-[0.8vh] cursor-pointer hover:text-purple-400 transition">
             <Utensils className="w-[3vh] h-[3vh]" />
-            <span className="text-[1.5vh]">Restorani</span>
+            <span className="text-[1.5vh]">Food & Drinks</span>
           </li>
-          <li className="flex flex-col items-center gap-[0.8vh] cursor-pointer hover:text-yellow-400 transition">
-            <Camera className="w-[3vh] h-[3vh]" />
-            <span className="text-[1.5vh]">Atrakcije</span>
+          <li className="flex flex-col items-center gap-[0.8vh] cursor-pointer hover:text-purple-400 transition">
+            <BedDouble className="w-[3vh] h-[3vh]" />
+            <span className="text-[1.5vh]">Accommodation</span>
           </li>
-          <li className="flex flex-col items-center gap-[0.8vh] cursor-pointer hover:text-yellow-400 transition">
-            <MapPin className="w-[3vh] h-[3vh]" />
-            <span className="text-[1.5vh]">Lokacije</span>
+          <li className="flex flex-col items-center gap-[0.8vh] cursor-pointer hover:text-purple-400 transition">
+            <ShieldPlus className="w-[3vh] h-[3vh]" />
+            <span className="text-[1.5vh]">Health</span>
           </li>
         </ul>
       </motion.div>

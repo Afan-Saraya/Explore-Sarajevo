@@ -53,7 +53,7 @@ export default function Navbar() {
                   href="#"
                   className="block px-4 py-2 hover:bg-gray-800 transition"
                 >
-                  News
+                  Map
                 </a>
                 <a
                   href="#"
@@ -84,7 +84,7 @@ export default function Navbar() {
             Discover Sarajevo
           </a>
           <a href="#" className="hover:text-gray-300 transition">
-            News
+            Map
           </a>
           <a
             href="#"

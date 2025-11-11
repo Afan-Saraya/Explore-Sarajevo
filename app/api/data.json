@@ -306,7 +306,6 @@
     }
   ],
   "attractive_locations": [
-    [
       {
         "id": "1",
         "name": "Baščaršija",
@@ -329,7 +328,7 @@
         "address": "Igman, Sarajevo",
         "location": "43.8150,18.2810",
         "images": [
-          "/assets/attractions/bob-staza.jpg"
+          "/assets/attractions/bobStaza.jpg"
         ],
         "featuredLocation": true
       },
@@ -342,7 +341,7 @@
         "address": "Sarajevo",
         "location": "43.8563,18.4131",
         "images": [
-          "/assets/attractions/istok-zapad.jpg"
+          "/assets/attractions/istokZapad.jpg"
         ],
         "featuredLocation": true
       },
@@ -355,7 +354,7 @@
         "address": "Dobrinja, Sarajevo",
         "location": "43.8560,18.3840",
         "images": [
-          "/assets/attractions/tunel-spasa.jpeg"
+          "/assets/attractions/tunelSpasa.jpeg"
         ],
         "featuredLocation": true
       },
@@ -368,7 +367,7 @@
         "address": "Titova, Sarajevo",
         "location": "43.8565,18.4130",
         "images": [
-          "/assets/attractions/vjecna-vatra.jpg"
+          "/assets/attractions/vjecnaVatra.jpg"
         ],
         "featuredLocation": true
       },
@@ -381,7 +380,7 @@
         "address": "Ilidža, Sarajevo",
         "location": "43.8115,18.3201",
         "images": [
-          "/assets/attractions/vrelo-bosne.jpg"
+          "/assets/attractions/vreloBosne.jpg"
         ],
         "featuredLocation": true
       },
@@ -411,7 +410,6 @@
         ],
         "featuredLocation": true
       }
-    ]
   ],
   "categories": [
     {

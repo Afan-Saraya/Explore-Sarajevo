@@ -8,7 +8,7 @@ import OurPlace from "./Home/OurPlace";
 import AttractiveLocations from "./Home/AttractiveLocations";
 
 async function getData(): Promise<{ businesses: Business[]; categories: Category[]; attractive_locations: AttractiveLocation[] }> {
-  const res = await fetch("https://mocki.io/v1/e38e9fbd-023a-4274-8d94-980dbf137239", {
+  const res = await fetch("http://localhost:3000/api", {
     cache: "no-store",
   });
 
@@ -45,6 +45,7 @@ export default async function HomePage() {
       </div>
       <OurPlace />
       <section className="max-w-7xl mx-auto px-6 md:px-10 py-14 overflow-hidden">
+        <AttractiveLocations attractive_locations={attractive_locations} />
       </section>
     </div>
   );

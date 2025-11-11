@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Business } from "../lib/types";
 import { MapPin } from "lucide-react";
-import { motion } from "framer-motion";
+import ReactCardFlip from "react-card-flip";
 
 interface Props {
   businesses: Business[];
@@ -23,7 +23,7 @@ export default function DistrictSection({ businesses, brandName }: Props) {
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ Filtriraj samo biznise koji imaju brandName isti kao prop
+  // Filtriraj samo biznise s odgovarajućim brandom
   const filteredByBrand = businesses.filter(
     (b) => b.brandId?.toLowerCase() === brandName.toLowerCase()
   );
@@ -32,22 +32,22 @@ export default function DistrictSection({ businesses, brandName }: Props) {
     ? filteredByBrand.filter((b) => b.slug === selectedCategory)
     : filteredByBrand;
 
-  // Flip animacija
+  // Automatski flip i promjena seta kartica
   useEffect(() => {
     if (filteredBusinesses.length === 0) return;
     const flipInterval = setInterval(() => {
-      setTimeout(() => {
-        setVisibleIndex((prev) => (prev + 4) % filteredBusinesses.length);
-      }, 500);
       setFlipped(true);
       setTimeout(() => {
+        setVisibleIndex((prev) => (prev + 4) % filteredBusinesses.length);
         setFlipped(false);
       }, 700);
     }, 5000);
     return () => clearInterval(flipInterval);
   }, [filteredBusinesses.length]);
 
-  // Provjera da li je otvoreno
+  const visibleBusinesses = filteredBusinesses.slice(visibleIndex, visibleIndex + 4);
+
+  // Provjera radnog vremena
   function isOpenNow(workingHours?: string) {
     if (!workingHours) return false;
     const now = new Date();
@@ -61,40 +61,9 @@ export default function DistrictSection({ businesses, brandName }: Props) {
     return totalNow >= totalStart && totalNow <= totalEnd;
   }
 
-  const visibleBusinesses = filteredBusinesses.slice(visibleIndex, visibleIndex + 4);
-
   return (
     <div className="mt-5 text-black md:text-start text-center">
       <Image className="p-5" src="/assets/visitBjelasnicaLogo.png" width={400} height={40} alt="" />
-
-      {/* Filter dugmad */}
-      {filteredBusinesses.length > 1 && (
-        <div className="flex flex-wrap justify-center gap-3 mb-12">
-          <button
-            onClick={() => setSelectedCategory(null)}
-            className={`px-4 py-2 rounded-full text-sm font-medium border ${
-              selectedCategory === null
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-            } transition`}
-          >
-            Sve
-          </button>
-          {filteredBusinesses.map((b) => (
-            <button
-              key={b.id}
-              onClick={() => setSelectedCategory(b.slug)}
-              className={`px-4 py-2 rounded-full text-sm font-medium border ${
-                selectedCategory === b.slug
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-              } transition`}
-            >
-              {b.categoryId}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Grid kartica */}
       <div
@@ -120,17 +89,14 @@ export default function DistrictSection({ businesses, brandName }: Props) {
           return (
             <div
               key={b.id}
-              className={`perspective-1000 relative border border-gray-200 rounded-2xl snap-center
+              className={`relative border border-gray-200 rounded-2xl snap-center
                 ${isWideDesktop ? "md:col-span-2" : "md:col-span-1"}
-                ${isWideMobile ? "col-span-2" : "col-span-1"}`}
+                ${isWideMobile ? "col-span-2" : "col-span-1"}
+              `}
             >
-              <motion.div
-                animate={{ rotateY: flipped ? 180 : 0 }}
-                transition={{ duration: 0.6 }}
-                className="relative w-full h-[35vh] md:h-[45vh] max-sm:aspect-[4/6] aspect-[16/10] transform-style-preserve-3d"
-              >
-                {/* Prednja strana */}
-                <div className="absolute w-full h-full backface-hidden">
+              <ReactCardFlip isFlipped={flipped} flipDirection="horizontal">
+                {/* FRONT */}
+                <div className="relative w-full h-[35vh] md:h-[45vh] max-sm:aspect-[4/6] aspect-[16/10] rounded-2xl">
                   <Image
                     src={b.images[0] || "https://dummyimage.com/720x540"}
                     alt={b.name}
@@ -156,9 +122,9 @@ export default function DistrictSection({ businesses, brandName }: Props) {
                   </div>
                 </div>
 
-                {/* Stražnja strana */}
+                {/* BACK */}
                 {backBiz && (
-                  <div className="absolute w-full h-full rotateY-180 backface-hidden">
+                  <div className="relative w-full h-[35vh] md:h-[45vh] max-sm:aspect-[4/6] aspect-[16/10] rounded-2xl">
                     <Image
                       src={backBiz.images[0] || "https://dummyimage.com/720x540"}
                       alt={backBiz.name}
@@ -184,7 +150,7 @@ export default function DistrictSection({ businesses, brandName }: Props) {
                     </div>
                   </div>
                 )}
-              </motion.div>
+              </ReactCardFlip>
             </div>
           );
         })}

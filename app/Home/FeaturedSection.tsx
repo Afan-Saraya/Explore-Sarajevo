@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Business } from "../lib/types";
 import { MapPin, Phone, ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
+import ReactCardFlip from "react-card-flip";
 
 interface Props {
   businesses: Business[];
@@ -30,13 +30,12 @@ export default function CategorySection({ businesses }: Props) {
     ? featuredBusinesses.filter((b) => b.slug === selectedCategory)
     : featuredBusinesses;
 
+  // 🔄 Automatski flip i promjena seta
   useEffect(() => {
     const flipInterval = setInterval(() => {
-      setTimeout(() => {
-        setVisibleIndex((prev) => (prev + 4) % filteredBusinesses.length);
-      }, 500);
       setFlipped(true);
       setTimeout(() => {
+        setVisibleIndex((prev) => (prev + 4) % filteredBusinesses.length);
         setFlipped(false);
       }, 700);
     }, 5000);
@@ -111,6 +110,9 @@ export default function CategorySection({ businesses }: Props) {
             (isEvenRow && index % 2 === 0) || (!isEvenRow && index % 2 === 1);
           const isWideMobile = index % 3 === 0;
 
+          const backIndex = (visibleIndex + index + 4) % filteredBusinesses.length;
+          const backBiz = filteredBusinesses[backIndex];
+
           return (
             <div
               key={b.id}
@@ -120,13 +122,9 @@ export default function CategorySection({ businesses }: Props) {
                 ${isWideMobile ? "col-span-2" : "col-span-1"}
               `}
             >
-              <motion.div
-                animate={{ rotateY: flipped ? 180 : 0 }}
-                transition={{ duration: 0.6 }}
-                className="relative w-full h-[35vh] md:h-[45vh] max-sm:aspect-[4/6] aspect-[16/10] transform-style-preserve-3d"
-              >
-                {/* Prednja strana */}
-                <div className="absolute w-full h-full backface-hidden">
+              <ReactCardFlip isFlipped={flipped} flipDirection="horizontal">
+                {/* FRONT */}
+                <div className="relative w-full h-[35vh] md:h-[45vh] rounded-2xl">
                   <Image
                     src={b.images[0] || "https://dummyimage.com/720x540"}
                     alt={b.name}
@@ -142,7 +140,11 @@ export default function CategorySection({ businesses }: Props) {
                         <span>{b.address}</span>
                       </div>
                       <span
-                        className={`text-[1.3vh] font-semibold ${isOpenNow(b.workingHours) ? "text-green-400" : "text-red-500"}`}
+                        className={`text-[1.3vh] font-semibold ${
+                          isOpenNow(b.workingHours)
+                            ? "text-green-400"
+                            : "text-red-500"
+                        }`}
                       >
                         {isOpenNow(b.workingHours) ? "Open Now" : "Closed Now"}
                       </span>
@@ -150,46 +152,31 @@ export default function CategorySection({ businesses }: Props) {
                   </div>
                 </div>
 
-                {/* Stražnja strana (novi biznis) */}
-                {filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length] && (
-                  <div className="absolute w-full h-full rotateY-180 backface-hidden">
+                {/* BACK */}
+                {backBiz && (
+                  <div className="relative w-full h-[35vh] md:h-[45vh] rounded-2xl">
                     <Image
-                      src={
-                        filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length].images[0] ||
-                        "https://dummyimage.com/720x540"
-                      }
-                      alt={
-                        filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length].name
-                      }
+                      src={backBiz.images[0] || "https://dummyimage.com/720x540"}
+                      alt={backBiz.name}
                       fill
                       className="object-cover w-full h-full rounded-2xl"
                     />
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/80 to-transparent p-4 flex flex-col gap-2 text-white rounded-b-2xl">
-                      <h3 className="text-[2vh] font-semibold">
-                        {filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length].name}
-                      </h3>
-                      <div className="flex items-center gap-2 text-[1.3vh] opacity-90">
-                        {filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length].categoryId}
-                      </div>
+                      <h3 className="text-[2vh] font-semibold">{backBiz.name}</h3>
+                      <div className="flex items-center gap-2 text-[1.3vh] opacity-90">{backBiz.categoryId}</div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-[1.3vh] opacity-90">
                           <MapPin className="w-4 h-4" />
-                          <span>
-                            {filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length].address}
-                          </span>
+                          <span>{backBiz.address}</span>
                         </div>
                         <span
                           className={`text-[1.3vh] font-semibold ${
-                            isOpenNow(
-                              filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length].workingHours
-                            )
+                            isOpenNow(backBiz.workingHours)
                               ? "text-green-400"
                               : "text-red-500"
                           }`}
                         >
-                          {isOpenNow(
-                            filteredBusinesses[(visibleIndex + index + 4) % filteredBusinesses.length].workingHours
-                          )
+                          {isOpenNow(backBiz.workingHours)
                             ? "Open Now"
                             : "Closed Now"}
                         </span>
@@ -197,7 +184,7 @@ export default function CategorySection({ businesses }: Props) {
                     </div>
                   </div>
                 )}
-              </motion.div>
+              </ReactCardFlip>
             </div>
           );
         })}
