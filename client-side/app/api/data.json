@@ -303,6 +303,25 @@
       "phone": "+387 61 567 890",
       "website": "https://visitbjelanica.ba",
       "featuredBusiness": false
+    },
+    {
+      "id": "17",
+      "name": "Tour T3. “Nomad’s Tour”",
+      "slug": "tour-t3-nomads",
+      "categoryId": "activities",
+      "parentCategoryId": "guided-tours",
+      "brandId": "visit-bjelanica",
+      "description": "Tematska tura s vodičem koja pokazuje skrivene kutke Sarajeva i okoline.",
+      "address": "Sarajevo",
+      "location": "43.8563,18.4131",
+      "rating": 4.7,
+      "workingHours": "Pon–Ned: 09:00 – 17:00",
+      "images": [
+        "/assets/businesses/nomadsTour.jpg"
+      ],
+      "phone": "+387 61 567 890",
+      "website": "https://visitbjelanica.ba",
+      "featuredBusiness": false
     }
   ],
   "attractive_locations": [
