@@ -4,7 +4,7 @@ import Footer from "./components/Footer";
 
 export const metadata = {
   title: "Explore Sarajevo",
-  description: "Next.js app sa Navbarom i Footerom",
+  description: "Explore Sarajevo",
 };
 
 export default function RootLayout({
