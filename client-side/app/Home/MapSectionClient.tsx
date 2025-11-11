@@ -1,12 +1,14 @@
 "use client";
 
 import { Map, Marker, Overlay } from "pigeon-maps";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Business } from "../lib/types";
 
 export default function MapSectionClient({ businesses }: { businesses: Business[] }) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [selected, setSelected] = useState<[number, number] | null>(null);
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [zoom, setZoom] = useState(13);
+  const [center, setCenter] = useState<[number, number]>([43.8563, 18.4131]);
 
   const uniqueCategories = Array.from(new Set(businesses.map((b) => b.categoryId)));
 
@@ -16,33 +18,42 @@ export default function MapSectionClient({ businesses }: { businesses: Business[
       : businesses;
   }, [activeCategory, businesses]);
 
-  const defaultCenter: [number, number] = [43.8563, 18.4131];
-  const mapCenter =
-    selected ||
-    (filteredBusinesses.length > 0
-      ? filteredBusinesses.reduce(
-          (acc, b) => {
-            const [lat, lng] = b.location.split(",").map(Number);
-            return [acc[0] + lat / filteredBusinesses.length, acc[1] + lng / filteredBusinesses.length];
-          },
-          [0, 0]
-        ) as [number, number]
-      : defaultCenter);
+  // Automatski centriraj i zumiraj kada se promijeni kategorija
+  useEffect(() => {
+    if (filteredBusinesses.length === 0) {
+      setCenter([43.8563, 18.4131]);
+      setZoom(13);
+      return;
+    }
+
+    const lats = filteredBusinesses.map((b) => Number(b.location.split(",")[0]));
+    const lngs = filteredBusinesses.map((b) => Number(b.location.split(",")[1]));
+
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+
+    const midLat = (minLat + maxLat) / 2;
+    const midLng = (minLng + maxLng) / 2;
+    setCenter([midLat, midLng]);
+
+    const latDiff = maxLat - minLat;
+    const lngDiff = maxLng - minLng;
+    const maxDiff = Math.max(latDiff, lngDiff);
+
+    if (maxDiff < 0.01) setZoom(15);
+    else if (maxDiff < 0.05) setZoom(13);
+    else if (maxDiff < 0.1) setZoom(12);
+    else setZoom(11);
+  }, [filteredBusinesses]);
 
   return (
     <>
-      <section className="relative flex flex-col items-center mt-[6vh] overflow-hidden">
-        <div className="max-w-2xl mb-6 mx-auto text-center relative z-2">
-          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4 tracking-tight uppercase">
-            Istražite interesovanja na mapi Sarajeva
-          </h2>
-          <p className="text-gray-700 text-lg md:text-xl">
-            Pregledajte lokalne firme, restorane i servise u vašoj blizini.
-            Filtrirajte po kategorijama i pronađite tačno ono što tražite.
-          </p>
-        </div>
+      {/* Naslov i filteri */}
+      <section className="relative flex flex-col mt-[6vh] overflow-hidden">
+        <h5 className="p-5 font-bold text-black text-[5vh]">Istražite interesovanja na mapi Sarajeva</h5>
 
-        {/* Dugmad za kategorije */}
         <div className="flex flex-wrap gap-2 justify-center mb-6">
           <button
             onClick={() => setActiveCategory(null)}
@@ -72,40 +83,74 @@ export default function MapSectionClient({ businesses }: { businesses: Business[
 
       {/* Mapa */}
       <section className="relative w-full h-[60vh] rounded-2xl overflow-hidden">
-        <Map
-          height={600}
-          defaultCenter={defaultCenter}
-          center={mapCenter}
-          defaultZoom={13}
-          zoom={14}
-        >
+        <Map height={600} center={center} zoom={zoom}>
           {filteredBusinesses.map((b) => {
             const [lat, lng] = b.location.split(",").map(Number);
             return (
               <Marker
                 key={b.id}
                 anchor={[lat, lng]}
-                onClick={() => setSelected([lat, lng])}
+                onClick={() => setSelectedBusiness(b)}
+                color="#9333ea" // 💜 Purple marker
               />
             );
           })}
 
-          {selected &&
-            filteredBusinesses.map((b) => {
-              const [lat, lng] = b.location.split(",").map(Number);
-              if (lat === selected[0] && lng === selected[1]) {
-                return (
-                  <Overlay key={b.id} anchor={[lat, lng]} offset={[120, 80]}>
-                    <div className="bg-white p-3 rounded-xl shadow-lg border text-sm w-[220px]">
-                      <h3 className="font-semibold text-gray-900">{b.name}</h3>
-                      <p className="text-gray-700 text-xs">{b.description}</p>
-                      <p className="text-gray-500 text-xs mt-1">{b.address}</p>
-                    </div>
-                  </Overlay>
-                );
-              }
-              return null;
-            })}
+          {selectedBusiness && (
+            <Overlay
+              anchor={selectedBusiness.location.split(",").map(Number) as [number, number]}
+              offset={[120, 80]}
+            >
+              <div className="bg-white p-3 rounded-xl shadow-lg border text-sm w-[260px] relative">
+                {/* Zatvori */}
+                <button
+                  onClick={() => setSelectedBusiness(null)}
+                  className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+                >
+                  ✕
+                </button>
+
+                {/* Slika */}
+                {selectedBusiness.images?.[0] && (
+                  <img
+                    src={selectedBusiness.images[0]}
+                    alt={selectedBusiness.name}
+                    className="w-full h-32 object-cover rounded-lg mb-2"
+                  />
+                )}
+
+                {/* Tekstualni dio */}
+                <h3 className="font-semibold text-gray-900 text-base mb-1">
+                  {selectedBusiness.name}
+                </h3>
+                <p className="text-gray-700 text-xs mb-2">{selectedBusiness.description}</p>
+                <p className="text-gray-600 text-xs mb-1">
+                  📍 {selectedBusiness.address}
+                </p>
+                <p className="text-gray-600 text-xs mb-1">
+                  🕓 {selectedBusiness.workingHours}
+                </p>
+                <p className="text-gray-600 text-xs mb-1">
+                  ⭐ {selectedBusiness.rating}
+                </p>
+                {selectedBusiness.phone && (
+                  <p className="text-gray-600 text-xs mb-1">
+                    ☎️ {selectedBusiness.phone}
+                  </p>
+                )}
+                {selectedBusiness.website && (
+                  <a
+                    href={selectedBusiness.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-600 text-xs font-medium hover:underline"
+                  >
+                    🌐 Posjeti web stranicu
+                  </a>
+                )}
+              </div>
+            </Overlay>
+          )}
         </Map>
       </section>
     </>
