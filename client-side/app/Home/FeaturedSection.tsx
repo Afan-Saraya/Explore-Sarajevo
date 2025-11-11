@@ -1,10 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Business } from "../lib/types";
-import { MapPin, Phone, ArrowRight } from "lucide-react";
+import { MapPin } from "lucide-react";
 import ReactCardFlip from "react-card-flip";
 
 interface Props {
@@ -22,15 +21,18 @@ export default function CategorySection({ businesses }: Props) {
     return () => clearInterval(interval);
   }, []);
 
-  // 🔹 Filtriraj samo featured biznise
+  // 🔹 Samo featured biznisi
   const featuredBusinesses = businesses.filter((b) => b.featuredBusiness === true);
 
-  // 🔹 Dodatni filter po kategoriji (ako postoji)
+  // 🔹 Jedinstvene kategorije
+  const uniqueCategories = Array.from(new Set(featuredBusinesses.map((b) => b.categoryId)));
+
+  // 🔹 Filtriraj biznise po selektovanoj kategoriji
   const filteredBusinesses = selectedCategory
-    ? featuredBusinesses.filter((b) => b.slug === selectedCategory)
+    ? featuredBusinesses.filter((b) => b.categoryId === selectedCategory)
     : featuredBusinesses;
 
-  // 🔄 Automatski flip i promjena seta
+  // 🔄 Automatski flip kartica
   useEffect(() => {
     const flipInterval = setInterval(() => {
       setFlipped(true);
@@ -63,8 +65,8 @@ export default function CategorySection({ businesses }: Props) {
     <div className="mt-5 text-black md:text-start text-center">
       <h5 className="p-5 font-bold text-[5vh]">Preporučujemo</h5>
 
-      {/* Filter dugmad */}
-      {featuredBusinesses.length > 1 && (
+      {/* Filter dugmad za kategorije */}
+      {uniqueCategories.length > 0 && (
         <div className="flex flex-wrap justify-center gap-3 mb-12">
           <button
             onClick={() => setSelectedCategory(null)}
@@ -76,17 +78,18 @@ export default function CategorySection({ businesses }: Props) {
           >
             Sve
           </button>
-          {featuredBusinesses.map((b) => (
+
+          {uniqueCategories.map((cat) => (
             <button
-              key={b.id}
-              onClick={() => setSelectedCategory(b.slug)}
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
               className={`px-4 py-2 rounded-full text-sm font-medium border ${
-                selectedCategory === b.slug
+                selectedCategory === cat
                   ? "bg-blue-600 text-white border-blue-600"
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
               } transition`}
             >
-              {b.categoryId}
+              {cat}
             </button>
           ))}
         </div>

@@ -9,24 +9,25 @@ import { Business } from "../lib/types";
 export default function Navbar({ businesses }: { businesses: Business[] }) {
   const [isAtTop, setIsAtTop] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false); // state za modal
 
   useEffect(() => {
-    const handleScroll = () => setIsAtTop(window.scrollY <= 10);
+    const handleScroll = () => {
+      setIsAtTop(window.scrollY <= 10);
+    };
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const openModal = () => {
-    setModalOpen(true);
-    setMenuOpen(false); // zatvori menu kad otvoriš modal
-  };
+  // Funkcija koja otvara modal
+  const openModal = () => setModalOpen(true);
   const closeModal = () => setModalOpen(false);
 
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
+        className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 z-100 ${
           isAtTop ? "bg-transparent" : "bg-black/90 shadow-md"
         }`}
       >
@@ -118,14 +119,15 @@ export default function Navbar({ businesses }: { businesses: Business[] }) {
 
       {/* Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <div className="relative w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] overflow-auto bg-white rounded-2xl p-6">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] overflow-auto relative p-6">
             <button
               onClick={closeModal}
               className="absolute top-4 right-4 text-gray-700 hover:text-gray-900"
             >
               <X className="w-6 h-6" />
             </button>
+
             <MapSectionClient businesses={businesses} />
           </div>
         </div>
