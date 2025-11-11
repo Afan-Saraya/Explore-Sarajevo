@@ -96,7 +96,7 @@ export default function CategorySection({ businesses }: Props) {
       <div
         className="
         grid 
-        md:grid-cols-3 gap-2 md:gap-10
+        md:grid-cols-3 gap-2 md:gap-3
         grid-cols-2 max-sm:grid-cols-2
         overflow-x-auto md:overflow-visible 
         snap-x snap-mandatory
