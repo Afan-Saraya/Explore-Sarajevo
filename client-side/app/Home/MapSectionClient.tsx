@@ -1,49 +1,38 @@
 "use client";
 
+import { Map, Marker, Overlay } from "pigeon-maps";
 import { useState, useMemo } from "react";
 import { Business } from "../lib/types";
-import {
-  GoogleMap,
-  Marker,
-  InfoWindow,
-  useLoadScript
-} from "@react-google-maps/api";
 
-interface Props {
-  businesses: Business[];
-}
-
-export default function MapSectionClient({ businesses }: Props) {
+export default function MapSectionClient({ businesses }: { businesses: Business[] }) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [selectedMarker, setSelectedMarker] = useState<Business | null>(null);
+  const [selected, setSelected] = useState<[number, number] | null>(null);
 
-  // Google Maps API key
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-  });
+  const uniqueCategories = Array.from(new Set(businesses.map((b) => b.categoryId)));
 
-  const filteredBusinesses = useMemo(
-    () =>
-      activeCategory
-        ? businesses.filter((b) => b.categoryId === activeCategory)
-        : businesses,
-    [activeCategory, businesses]
-  );
+  const filteredBusinesses = useMemo(() => {
+    return activeCategory
+      ? businesses.filter((b) => b.categoryId === activeCategory)
+      : businesses;
+  }, [activeCategory, businesses]);
 
-  const uniqueCategories = useMemo(
-    () => Array.from(new Set(businesses.map((b) => b.categoryId))),
-    [businesses]
-  );
-
-  const mapCenter = { lat: 43.8563, lng: 18.4131 };
-
-  if (loadError) return <div>Mapa nije dostupna</div>;
-  if (!isLoaded) return <div>Učitavanje mape...</div>;
+  const defaultCenter: [number, number] = [43.8563, 18.4131];
+  const mapCenter =
+    selected ||
+    (filteredBusinesses.length > 0
+      ? filteredBusinesses.reduce(
+          (acc, b) => {
+            const [lat, lng] = b.location.split(",").map(Number);
+            return [acc[0] + lat / filteredBusinesses.length, acc[1] + lng / filteredBusinesses.length];
+          },
+          [0, 0]
+        ) as [number, number]
+      : defaultCenter);
 
   return (
     <>
       <section className="relative flex flex-col items-center mt-[6vh] overflow-hidden">
-        <div className="max-w-2xl mb-6 mx-auto text-center">
+        <div className="max-w-2xl mb-6 mx-auto text-center relative z-2">
           <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4 tracking-tight uppercase">
             Istražite interesovanja na mapi Sarajeva
           </h2>
@@ -53,7 +42,7 @@ export default function MapSectionClient({ businesses }: Props) {
           </p>
         </div>
 
-        {/* Filter kategorija */}
+        {/* Dugmad za kategorije */}
         <div className="flex flex-wrap gap-2 justify-center mb-6">
           <button
             onClick={() => setActiveCategory(null)}
@@ -81,48 +70,43 @@ export default function MapSectionClient({ businesses }: Props) {
         </div>
       </section>
 
+      {/* Mapa */}
       <section className="relative w-full h-[60vh] rounded-2xl overflow-hidden">
-        <GoogleMap
-          mapContainerStyle={{ width: "100%", height: "100%" }}
-          zoom={13}
+        <Map
+          height={600}
+          defaultCenter={defaultCenter}
           center={mapCenter}
-          onLoad={(map) => {
-            if (filteredBusinesses.length > 0) {
-              const bounds = new window.google.maps.LatLngBounds();
-              filteredBusinesses.forEach((b) => {
-                const [lat, lng] = b.location.split(",").map(Number);
-                bounds.extend({ lat, lng });
-              });
-              map.fitBounds(bounds);
-            }
-          }}
+          defaultZoom={13}
+          zoom={14}
         >
           {filteredBusinesses.map((b) => {
             const [lat, lng] = b.location.split(",").map(Number);
             return (
               <Marker
                 key={b.id}
-                position={{ lat, lng }}
-                onClick={() => setSelectedMarker(b)}
+                anchor={[lat, lng]}
+                onClick={() => setSelected([lat, lng])}
               />
             );
           })}
 
-          {selectedMarker && (
-            <InfoWindow
-              position={{
-                lat: Number(selectedMarker.location.split(",")[0]),
-                lng: Number(selectedMarker.location.split(",")[1]),
-              }}
-              onCloseClick={() => setSelectedMarker(null)}
-            >
-              <div>
-                <h3 className="font-bold">{selectedMarker.name}</h3>
-                <p>{selectedMarker.description}</p>
-              </div>
-            </InfoWindow>
-          )}
-        </GoogleMap>
+          {selected &&
+            filteredBusinesses.map((b) => {
+              const [lat, lng] = b.location.split(",").map(Number);
+              if (lat === selected[0] && lng === selected[1]) {
+                return (
+                  <Overlay key={b.id} anchor={[lat, lng]} offset={[120, 80]}>
+                    <div className="bg-white p-3 rounded-xl shadow-lg border text-sm w-[220px]">
+                      <h3 className="font-semibold text-gray-900">{b.name}</h3>
+                      <p className="text-gray-700 text-xs">{b.description}</p>
+                      <p className="text-gray-500 text-xs mt-1">{b.address}</p>
+                    </div>
+                  </Overlay>
+                );
+              }
+              return null;
+            })}
+        </Map>
       </section>
     </>
   );
