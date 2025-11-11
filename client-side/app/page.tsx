@@ -8,7 +8,7 @@ import OurPlace from "./Home/OurPlace";
 import AttractiveLocations from "./Home/AttractiveLocations";
 
 async function getData(): Promise<{ businesses: Business[]; categories: Category[]; attractive_locations: AttractiveLocation[] }> {
-  const res = await fetch("http://localhost:3000/api", {
+  const res = await fetch("https://mocki.io/v1/1e82c7d5-0e57-4485-ad83-12fef39ff82a", {
     cache: "no-store",
   });
 
