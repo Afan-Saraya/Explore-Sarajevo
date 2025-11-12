@@ -8,7 +8,7 @@ interface CategoryPageProps {
 }
 
 async function getData(): Promise<{ businesses: Business[]; categories: Category[]; attractive_locations: AttractiveLocation[] }> {
-  const res = await fetch("http://localhost:3000/api", {
+  const res = await fetch("https://mocki.io/v1/e84cbca4-1ede-47e6-8954-799d2371d6b1", {
     cache: "no-store",
   });
 

@@ -9,7 +9,7 @@ import AttractiveLocations from "./Home/AttractiveLocations";
 import MapSectionClient from "./Home/MapSectionClient";
 
 async function getData(): Promise<{ businesses: Business[]; categories: Category[]; attractive_locations: AttractiveLocation[] }> {
-  const res = await fetch("http://localhost:3000/api", {
+  const res = await fetch("https://mocki.io/v1/e84cbca4-1ede-47e6-8954-799d2371d6b1", {
     cache: "no-store",
   });
 
@@ -47,6 +47,7 @@ export default async function HomePage() {
       <OurPlace />
       <section className="max-w-7xl mx-auto px-6 md:px-10 py-2 overflow-hidden">
         <AttractiveLocations attractive_locations={attractive_locations} />
+        <MapSectionClient businesses={businesses} />
       </section>
     </div>
   );
