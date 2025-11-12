@@ -19,9 +19,8 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
-        isAtTop ? "bg-transparent" : "bg-black/90 shadow-md"
-      }`}
+      className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${isAtTop ? "bg-transparent" : "bg-black/90 shadow-md"
+        }`}
     >
       <div className="w-full flex items-center justify-between px-4 md:px-10 py-4">
         {/* Lijeva strana */}

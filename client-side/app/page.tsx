@@ -45,7 +45,7 @@ export default async function HomePage() {
         </section>
       </div>
       <OurPlace />
-      <section className="max-w-7xl mx-auto px-6 md:px-10 py-14 overflow-hidden">
+      <section className="max-w-7xl mx-auto px-6 md:px-10 py-2 overflow-hidden">
         <AttractiveLocations attractive_locations={attractive_locations} />
         <MapSectionClient businesses={businesses} />
       </section>

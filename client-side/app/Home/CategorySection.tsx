@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Category } from "../lib/types";
-import { Utensils,  BedDouble, ShieldPlus, PartyPopper, Bike } from "lucide-react"; // primjer ikona
+import { Utensils, BedDouble, ShieldPlus, PartyPopper, Bike } from "lucide-react";
 
 interface Props {
   categories: Category[];
@@ -12,10 +12,6 @@ interface Props {
 
 /**
  * Interaktivni grid layout s dinamičnim rasporedom, ikonicama i zaštitom od "praznih redova".
- * - Na mobitelu: 2 kolone
- * - Na desktopu: do 3 kolone
- * - Zadnji element se automatski širi ako bi ostao sam
- * - Ikonica prikazana iznad imena kategorije
  */
 export default function CategorySection({ categories }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -82,7 +78,7 @@ export default function CategorySection({ categories }: Props) {
         return (
           <Link
             key={cat.id}
-            href={`/categories/${cat.slug}`}
+            href={`/${cat.slug}`} // ✅ vodi na /[idCategory]/page.tsx
             className={`
               relative overflow-hidden rounded-2xl border border-gray-200
               hover:scale-[1.03] hover:shadow-2xl transition-all duration-300 ease-out
@@ -102,7 +98,6 @@ export default function CategorySection({ categories }: Props) {
 
             {/* Središnji tekst + ikonica */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white px-4">
-              {/* Ikonica iznad naslova */}
               {cat.icon ? (
                 <Image
                   src={cat.icon}
@@ -115,12 +110,10 @@ export default function CategorySection({ categories }: Props) {
                 getIcon(cat.slug)
               )}
 
-              {/* Naslov kategorije */}
               <h3 className="text-lg md:text-2xl font-semibold mb-1 drop-shadow-md tracking-wide">
                 {cat.name}
               </h3>
 
-              {/* Opis kategorije (vidljiv samo na većim ekranima) */}
               {cat.description && (
                 <p className="hidden md:block text-sm opacity-90 max-w-sm">
                   {cat.description.length > 80
@@ -130,7 +123,6 @@ export default function CategorySection({ categories }: Props) {
               )}
             </div>
 
-            {/* Hover overlay */}
             <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 bg-black/20" />
           </Link>
         );

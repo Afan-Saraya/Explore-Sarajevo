@@ -56,8 +56,8 @@ export default function AttractiveLocations({ attractive_locations }: Props) {
   }
 
   return (
-    <div className="mt-5 text-black md:text-start text-center">
-      <h5 className="p-5 font-bold text-[5vh]">Atraktivne lokacije</h5>
+    <div className="mt-4 text-black md:text-start text-center">
+      <h5 className="p-0 md:p-5 font-bold text-[5vh]">Atraktivne lokacije</h5>
 
       <div
         className="
