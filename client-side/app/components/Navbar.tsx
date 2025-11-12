@@ -1,12 +1,14 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Menu, Search, User } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 export default function Navbar() {
   const [isAtTop, setIsAtTop] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname(); // trenutna ruta
 
   useEffect(() => {
     const handleScroll = () => {
@@ -17,11 +19,21 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Odredi klasu pozadine
+  const backgroundClass = (() => {
+    if (pathname === "/page") {
+      // samo page.tsx → potpuno transparentno
+      return isAtTop ? "bg-transparent" : "bg-black/100 shadow-md";
+    } else {
+      // sve druge stranice → vertikalni gradient crno → transparent
+      return isAtTop
+        ? "bg-gradient-to-b from-black/80 to-transparent"
+        : "bg-black/90 shadow-md";
+    }
+  })();
+
   return (
-    <nav
-      className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${isAtTop ? "bg-transparent" : "bg-black/90 shadow-md"
-        }`}
-    >
+    <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${backgroundClass}`}>
       <div className="w-full flex items-center justify-between px-4 md:px-10 py-4">
         {/* Lijeva strana */}
         <div className="flex items-center space-x-4 md:space-x-6">
@@ -36,28 +48,16 @@ export default function Navbar() {
 
             {menuOpen && (
               <div className="absolute top-10 left-0 bg-black/90 text-white rounded-xl shadow-lg py-2 w-44 border border-gray-700">
-                <a
-                  href="#"
-                  className="block px-4 py-2 hover:bg-gray-800 transition"
-                >
+                <a href="#" className="block px-4 py-2 hover:bg-gray-800 transition">
                   Home
                 </a>
-                <a
-                  href="#"
-                  className="block px-4 py-2 hover:bg-gray-800 transition"
-                >
+                <a href="#" className="block px-4 py-2 hover:bg-gray-800 transition">
                   Discover Sarajevo
                 </a>
-                <a
-                  href="#"
-                  className="block px-4 py-2 hover:bg-gray-800 transition"
-                >
+                <a href="#" className="block px-4 py-2 hover:bg-gray-800 transition">
                   Map
                 </a>
-                <a
-                  href="#"
-                  className="block px-4 py-2 hover:bg-gray-800 transition"
-                >
+                <a href="#" className="block px-4 py-2 hover:bg-gray-800 transition">
                   Sign in
                 </a>
               </div>
@@ -76,15 +76,9 @@ export default function Navbar() {
 
         {/* Desna strana – desktop */}
         <div className="hidden md:flex items-center space-x-10 text-white font-medium">
-          <a href="#" className="hover:text-gray-300 transition">
-            Home
-          </a>
-          <a href="#" className="hover:text-gray-300 transition">
-            Discover Sarajevo
-          </a>
-          <a href="#" className="hover:text-gray-300 transition">
-            Map
-          </a>
+          <a href="#" className="hover:text-gray-300 transition">Home</a>
+          <a href="#" className="hover:text-gray-300 transition">Discover Sarajevo</a>
+          <a href="#" className="hover:text-gray-300 transition">Map</a>
           <a
             href="#"
             className="hover:text-gray-300 transition border border-gray-400 px-4 py-1 rounded-full"

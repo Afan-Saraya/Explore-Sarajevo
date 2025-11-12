@@ -27,8 +27,6 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
     (b) => b.id === categoryId
   )
 
-  console.log(categoryDescription)
-
   const filteredBusinesses = businesses.filter(
     (b) => b.categoryId === categoryId
   );
@@ -76,9 +74,33 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
 
   return (
     <div className="mt-0 text-black md:text-start text-center">
-      <h5 className="p-5 pb-1 font-bold text-[5vh]">{categoryId}</h5>
-      <p className="pb-5 text-[2vh]">{categoryDescription[0].description}</p>
-
+      <div className="md:flex items-center justify-between p-5 pb-1">
+        <div>
+          <h5 className="p-5 pb-1 font-bold text-[5vh]">{categoryId}</h5>
+          <p className="pb-5 text-[2vh]">{categoryDescription[0].description}</p>
+        </div>
+        {/* Strelice za flip */}
+        <div className="flex justify-center md:justify-end space-x-3 pb-5 md:pb-0">
+          <button
+            onClick={() =>
+              setVisibleIndex((prev) =>
+                (prev - 4 + filteredBusinesses.length) % filteredBusinesses.length
+              )
+            }
+            className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-800 transition-all duration-200"
+          >
+            ◀
+          </button>
+          <button
+            onClick={() =>
+              setVisibleIndex((prev) => (prev + 4) % filteredBusinesses.length)
+            }
+            className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-800 transition-all duration-200"
+          >
+            ▶
+          </button>
+        </div>
+      </div>
       {/* Grid kartica */}
       <div
         className="
@@ -129,11 +151,10 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
                         <span>{b.address}</span>
                       </div>
                       <span
-                        className={`text-[1.3vh] font-semibold ${
-                          isOpenNow(b.workingHours)
-                            ? "text-green-400"
-                            : "text-red-500"
-                        }`}
+                        className={`text-[1.3vh] font-semibold ${isOpenNow(b.workingHours)
+                          ? "text-green-400"
+                          : "text-red-500"
+                          }`}
                       >
                         {isOpenNow(b.workingHours) ? "Open Now" : "Closed Now"}
                       </span>
@@ -159,11 +180,10 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
                           <span>{backBiz.address}</span>
                         </div>
                         <span
-                          className={`text-[1.3vh] font-semibold ${
-                            isOpenNow(backBiz.workingHours)
-                              ? "text-green-400"
-                              : "text-red-500"
-                          }`}
+                          className={`text-[1.3vh] font-semibold ${isOpenNow(backBiz.workingHours)
+                            ? "text-green-400"
+                            : "text-red-500"
+                            }`}
                         >
                           {isOpenNow(backBiz.workingHours)
                             ? "Open Now"

@@ -4,7 +4,7 @@ import MapHero from "./MapHero";
 
 // app/[id]/page.tsx
 interface CategoryPageProps {
-  params: Promise<{ id: string }>; // u Next 14+ ovo može biti Promise
+  params: Promise<{ id: string }>; 
 }
 
 async function getData(): Promise<{ businesses: Business[]; categories: Category[]; attractive_locations: AttractiveLocation[] }> {
@@ -25,7 +25,7 @@ async function getData(): Promise<{ businesses: Business[]; categories: Category
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const { id } = await params; // čekamo da se Promise razriješi
+  const { id } = await params;
   const { businesses, categories, attractive_locations } = await getData();
 
   // prikazuj samo featured biznise
@@ -38,7 +38,6 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
       <MapHero businesses={businesses} categoryId={id} />
       <section className="max-w-7xl mx-auto px-6 md:px-10 py-1 bg-white overflow-hidden">
       <CategorySectionByCategory businesses={businesses} categoryId={id} categories={categories} />
-        Kategorija: {id}
       </section>
     </div>
   );
