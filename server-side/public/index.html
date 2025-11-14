@@ -1,251 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Explore Sarajevo - CMS</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Explore Sarajevo - CMS Admin</title>
+  <link rel="stylesheet" href="styles.css">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📍 Explore Sarajevo - Content Management System</h1>
-            <p class="subtitle">Manage your attractions, businesses, and experiences</p>
-        </header>
-
-        <main>
-            <!-- Create/Upload Section -->
-            <section class="panel create-panel">
-                <h2>Create New Content</h2>
-                <form id="uploadForm" enctype="multipart/form-data">
-                    <div class="form-group">
-                        <label for="contentType">Content Type *</label>
-                        <select id="contentType" name="contentType" required onchange="updateFormFields()">
-                            <option value="">-- Select Type --</option>
-                            <option value="business">Business</option>
-                            <option value="attraction">Attraction</option>
-                        </select>
-                    </div>
-
-                    <!-- Common Fields -->
-                    <div class="form-group">
-                        <label for="name">Name / Title *</label>
-                        <input type="text" id="name" name="name" required placeholder="Enter name">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="slug">URL Slug (auto-generated)</label>
-                        <input type="text" id="slug" name="slug" placeholder="auto-generated from name" readonly>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="description">Description *</label>
-                        <textarea id="description" name="description" required placeholder="Brief description" rows="3"></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="address">Address</label>
-                        <input type="text" id="address" name="address" placeholder="e.g., Maršala Tita 25, Sarajevo">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="location">Location (Latitude, Longitude)</label>
-                        <input type="text" id="location" name="location" placeholder="e.g., 43.8563,18.4131">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="categoryId">Category ID</label>
-                        <input type="text" id="categoryId" name="categoryId" placeholder="e.g., coffee-shop, history">
-                    </div>
-
-                    <!-- Business-specific fields -->
-                    <div id="businessFields" style="display: none;">
-                        <div class="form-group">
-                            <label for="parentCategoryId">Parent Category ID</label>
-                            <input type="text" id="parentCategoryId" name="parentCategoryId" placeholder="e.g., food-drink, accommodation">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="brandId">Brand ID (optional)</label>
-                            <input type="text" id="brandId" name="brandId" placeholder="e.g., visit-bjelanica">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="phone">Phone</label>
-                            <input type="text" id="phone" name="phone" placeholder="e.g., +387 33 123 456">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="website">Website</label>
-                            <input type="url" id="website" name="website" placeholder="https://example.com">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="rating">Rating (1-5)</label>
-                            <input type="number" id="rating" name="rating" min="1" max="5" step="0.1" placeholder="e.g., 4.8">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="workingHours">Working Hours</label>
-                            <input type="text" id="workingHours" name="workingHours" placeholder="e.g., Pon–Ned: 08:00 – 23:00">
-                        </div>
-
-                        <div class="form-group">
-                            <label>
-                                <input type="checkbox" id="featuredBusiness" name="featuredBusiness">
-                                Featured Business
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Attraction-specific fields -->
-                    <div id="attractionFields" style="display: none;">
-                        <div class="form-group">
-                            <label>
-                                <input type="checkbox" id="featuredLocation" name="featuredLocation">
-                                Featured Location
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- File Upload -->
-                    <div class="form-group">
-                        <label for="file">Upload Image</label>
-                        <input type="file" id="file" name="file" accept="image/*" onchange="updateFileInfo()">
-                        <small id="fileInfo"></small>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Create Content</button>
-                    <span id="uploadStatus" class="status-message"></span>
-                </form>
-            </section>
-
-            <!-- Content List Section -->
-            <section class="panel content-list-panel">
-                <div class="section-header">
-                    <h2>Content Library</h2>
-                    <div class="filter-controls">
-                        <input type="text" id="searchInput" placeholder="Search content..." onkeyup="filterContent()">
-                        <select id="typeFilter" onchange="filterContent()">
-                            <option value="">All Types</option>
-                            <option value="business">Businesses</option>
-                            <option value="attraction">Attractions</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div id="contentList" class="content-grid">
-                    <p class="placeholder">No content yet. Create your first item above!</p>
-                </div>
-            </section>
-        </main>
-
-        <footer>
-            <p>&copy; 2025 Explore Sarajevo CMS | Server-side Content Management</p>
-        </footer>
-    </div>
-
-    <!-- Modal for editing content -->
-    <div id="editModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeEditModal()">&times;</span>
-            <h2>Edit Content</h2>
-            <form id="editForm" enctype="multipart/form-data">
-                <input type="hidden" id="editId" name="id">
-                
-                <div class="form-group">
-                    <label for="editName">Name</label>
-                    <input type="text" id="editName" name="name" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="editSlug">URL Slug</label>
-                    <input type="text" id="editSlug" name="slug">
-                </div>
-
-                <div class="form-group">
-                    <label for="editDescription">Description</label>
-                    <textarea id="editDescription" name="description" rows="3"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="editAddress">Address</label>
-                    <input type="text" id="editAddress" name="address">
-                </div>
-
-                <div class="form-group">
-                    <label for="editLocation">Location</label>
-                    <input type="text" id="editLocation" name="location">
-                </div>
-
-                <div class="form-group">
-                    <label for="editCategoryId">Category ID</label>
-                    <input type="text" id="editCategoryId" name="categoryId">
-                </div>
-
-                <div id="editBusinessFields" style="display: none;">
-                    <div class="form-group">
-                        <label for="editParentCategoryId">Parent Category ID</label>
-                        <input type="text" id="editParentCategoryId" name="parentCategoryId">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="editBrandId">Brand ID</label>
-                        <input type="text" id="editBrandId" name="brandId">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="editPhone">Phone</label>
-                        <input type="text" id="editPhone" name="phone">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="editWebsite">Website</label>
-                        <input type="url" id="editWebsite" name="website">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="editRating">Rating</label>
-                        <input type="number" id="editRating" name="rating" min="1" max="5" step="0.1">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="editWorkingHours">Working Hours</label>
-                        <input type="text" id="editWorkingHours" name="workingHours">
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="editFeaturedBusiness" name="featuredBusiness">
-                            Featured Business
-                        </label>
-                    </div>
-                </div>
-
-                <div id="editAttractionFields" style="display: none;">
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="editFeaturedLocation" name="featuredLocation">
-                            Featured Location
-                        </label>
-                    </div>
-                </div>
-
-                <div class="form-group" id="editFileGroup" style="display: none;">
-                    <label for="editFile">Replace Image</label>
-                    <input type="file" id="editFile" name="file" accept="image/*">
-                    <small id="editFileInfo"></small>
-                </div>
-
-                <div class="modal-buttons">
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
-                </div>
-                <span id="editStatus" class="status-message"></span>
-            </form>
+  <!-- Auth Screen -->
+  <div id="auth-screen" class="auth-screen" style="display: none;">
+    <div class="auth-container">
+      <div class="auth-header">
+        <h1>🗺️ Explore Sarajevo</h1>
+        <p>Admin Portal</p>
+      </div>
+      
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Login</button>
+        <button class="auth-tab" data-tab="register">Register</button>
+      </div>
+      
+      <!-- Login Form -->
+      <form id="login-form" class="auth-form">
+        <div class="form-group">
+          <label>Username or Email</label>
+          <input type="text" name="username" required placeholder="Enter username or email">
         </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" name="password" required placeholder="Enter password">
+        </div>
+        <div id="login-error" class="error-message"></div>
+        <button type="submit" class="btn btn-primary">Login</button>
+      </form>
+      
+      <!-- Register Form -->
+      <form id="register-form" class="auth-form" style="display: none;">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" name="username" required placeholder="Choose a username">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" required placeholder="Enter email address">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" name="password" required minlength="6" placeholder="At least 6 characters">
+        </div>
+        <div id="register-error" class="error-message"></div>
+        <button type="submit" class="btn btn-primary">Register</button>
+      </form>
     </div>
+  </div>
 
-    <script src="app.js"></script>
+  <div class="cms-container" id="cms-container" style="display: none;">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1>🗺️ Explore Sarajevo</h1>
+        <p class="subtitle">Content Management</p>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <h3>Dashboard</h3>
+          <a href="#" data-view="dashboard" class="nav-link active">
+            <span>📊</span> Dashboard
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <h3>Content</h3>
+          <a href="#" data-view="brands" class="nav-link"><span>🏷️</span> Brands</a>
+          <a href="#" data-view="businesses" class="nav-link"><span>🏢</span> Businesses</a>
+          <a href="#" data-view="attractions" class="nav-link"><span>🏛️</span> Attractions</a>
+          <a href="#" data-view="events" class="nav-link"><span>🎉</span> Events</a>
+          <a href="#" data-view="subevents" class="nav-link"><span>📅</span> Sub-events</a>
+        </div>
+
+        <div class="nav-section">
+          <h3>Taxonomies</h3>
+          <a href="#" data-view="categories" class="nav-link"><span>📁</span> Categories</a>
+          <a href="#" data-view="types" class="nav-link"><span>🏷️</span> Types</a>
+        </div>
+
+        <div class="nav-section">
+          <h3>Media</h3>
+          <a href="#" data-view="uploads" class="nav-link"><span>🖼️</span> File Uploads</a>
+        </div>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <span id="current-user"></span>
+        </div>
+        <button id="logout-btn" class="btn btn-secondary">🚪 Logout</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div id="view-container"><!-- Dynamic content loads here --></div>
+    </main>
+  </div>
+
+  <!-- Modal for forms -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>

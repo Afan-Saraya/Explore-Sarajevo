@@ -1,14 +1,41 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const session = require('express-session');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const db = require('./db');
+const contentModel = require('./db/content');
+const categoriesModel = require('./db/models/categories');
+const typesModel = require('./db/models/types');
+const brandsModel = require('./db/models/brands');
+const businessesModel = require('./db/models/businesses');
+const attractionsModel = require('./db/models/attractions');
+const eventsModel = require('./db/models/events');
+const subeventsModel = require('./db/models/subevents');
+const usersModel = require('./db/models/users');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
+
+// Session middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'explore-sarajevo-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 
 // Serve static files (CMS UI)
 const publicPath = path.join(__dirname, 'public');
@@ -31,37 +58,95 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Auth middleware
+function requireAuth(req, res, next) {
+  if (!req.session.user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
 app.get('/api/status', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-// Simple file-backed datastore for CMS content
-const DATA_FILE = path.join(__dirname, 'data.json');
-async function readData() {
+// DB health endpoint
+app.get('/api/db-status', async (req, res) => {
   try {
-    const raw = await fs.promises.readFile(DATA_FILE, 'utf8');
-    return JSON.parse(raw || '[]');
+    await db.testConnection();
+    res.json({ ok: true, connected: true });
   } catch (err) {
-    if (err.code === 'ENOENT') return [];
-    throw err;
+    res.status(500).json({ ok: false, connected: false, error: err.message });
   }
-}
+});
 
-async function writeData(data) {
-  await fs.promises.writeFile(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
-}
+// ===== AUTH ENDPOINTS =====
+// Register new user
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: 'Username, email, and password are required' });
+    }
+    
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    
+    const user = await usersModel.register(username, email, password);
+    req.session.user = user;
+    
+    res.status(201).json({ user });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: err.message || 'Registration failed' });
+  }
+});
 
-function generateId() {
-  return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 9);
-}
+// Login
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+    
+    const user = await usersModel.login(username, password);
+    req.session.user = user;
+    
+    res.json({ user });
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ error: err.message || 'Invalid credentials' });
+  }
+});
 
-// CMS endpoints
-// List content items (optional ?type=image|video|text)
+// Logout
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Logout failed' });
+    }
+    res.json({ message: 'Logged out successfully' });
+  });
+});
+
+// Get current user
+app.get('/api/auth/me', (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  res.json({ user: req.session.user });
+});
+
+// CMS endpoints (DB-backed)
+// List content items (optional ?type=business|attraction...)
 app.get('/api/content', async (req, res) => {
   try {
     const type = req.query.type;
-    let items = await readData();
-    if (type) items = items.filter(i => i.type === type);
+    const items = await contentModel.getAllContent(type);
     res.json(items);
   } catch (err) {
     console.error(err);
@@ -72,8 +157,7 @@ app.get('/api/content', async (req, res) => {
 // Get single item
 app.get('/api/content/:id', async (req, res) => {
   try {
-    const items = await readData();
-    const item = items.find(i => i.id === req.params.id);
+    const item = await contentModel.getContentById(req.params.id);
     if (!item) return res.status(404).json({ error: 'not found' });
     res.json(item);
   } catch (err) {
@@ -85,6 +169,7 @@ app.get('/api/content/:id', async (req, res) => {
 // Create content (multipart for files, or JSON body)
 app.post('/api/content', upload.single('file'), async (req, res) => {
   try {
+    const body = req.body || {};
     const {
       contentType,
       name,
@@ -92,131 +177,64 @@ app.post('/api/content', upload.single('file'), async (req, res) => {
       description = '',
       address = '',
       location = '',
-      categoryId = '',
-      parentCategoryId = '',
-      brandId = '',
+      categoryId = null,
+      parentCategoryId = null,
+      brandId = null,
       phone = '',
       website = '',
       rating = 0,
       workingHours = '',
       featuredBusiness = false,
       featuredLocation = false
-    } = req.body;
+    } = body;
 
-    // Validate required fields
     if (!contentType || !name) {
       return res.status(400).json({ error: 'contentType and name are required' });
     }
 
-    // Build base item
     const item = {
-      id: generateId(),
       contentType,
       name,
       slug: slug || name.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_]+/g, '-'),
       description,
       address,
       location,
-      categoryId,
-      images: []
+      categoryId: categoryId || null,
+      parentCategoryId: parentCategoryId || null,
+      brandId: brandId || null,
+      phone: phone || null,
+      website: website || null,
+      rating: rating ? parseFloat(rating) : null,
+      workingHours: workingHours || null,
+      featuredBusiness: featuredBusiness === 'true' || featuredBusiness === true,
+      featuredLocation: featuredLocation === 'true' || featuredLocation === true,
+      images: [],
+      data: {}
     };
 
-    // Add file path if uploaded
-    if (req.file) {
-      item.images = [`/uploads/${req.file.filename}`];
-    }
+    if (req.file) item.images = [`/uploads/${req.file.filename}`];
 
-    // Add business-specific fields
-    if (contentType === 'business') {
-      item.parentCategoryId = parentCategoryId;
-      item.brandId = brandId || null;
-      item.phone = phone || '';
-      item.website = website || '';
-      item.rating = rating ? parseFloat(rating) : 0;
-      item.workingHours = workingHours || '';
-      item.featuredBusiness = featuredBusiness === 'true' || featuredBusiness === true;
-    }
-
-    // Add attraction-specific fields
-    if (contentType === 'attraction') {
-      item.featuredLocation = featuredLocation === 'true' || featuredLocation === true;
-    }
-
-    const data = await readData();
-    data.unshift(item);
-    await writeData(data);
-    res.status(201).json(item);
+    const created = await contentModel.createContent(item);
+    res.status(201).json(created);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'failed to create content' });
   }
 });
 
-// Update content (optionally replace file)
+// Update content
 app.put('/api/content/:id', upload.single('file'), async (req, res) => {
   try {
     const id = req.params.id;
-    const data = await readData();
-    const idx = data.findIndex(i => i.id === id);
-    if (idx === -1) return res.status(404).json({ error: 'not found' });
+    const body = req.body || {};
 
-    const item = data[idx];
-    const {
-      name,
-      slug,
-      description,
-      address,
-      location,
-      categoryId,
-      parentCategoryId,
-      brandId,
-      phone,
-      website,
-      rating,
-      workingHours,
-      featuredBusiness,
-      featuredLocation
-    } = req.body;
-
-    // Update common fields
-    if (name !== undefined) item.name = name;
-    if (slug !== undefined) item.slug = slug;
-    if (description !== undefined) item.description = description;
-    if (address !== undefined) item.address = address;
-    if (location !== undefined) item.location = location;
-    if (categoryId !== undefined) item.categoryId = categoryId;
-
-    // Update business-specific fields
-    if (item.contentType === 'business') {
-      if (parentCategoryId !== undefined) item.parentCategoryId = parentCategoryId;
-      if (brandId !== undefined) item.brandId = brandId || null;
-      if (phone !== undefined) item.phone = phone;
-      if (website !== undefined) item.website = website;
-      if (rating !== undefined) item.rating = parseFloat(rating) || 0;
-      if (workingHours !== undefined) item.workingHours = workingHours;
-      if (featuredBusiness !== undefined) item.featuredBusiness = featuredBusiness === 'true' || featuredBusiness === true;
-    }
-
-    // Update attraction-specific fields
-    if (item.contentType === 'attraction') {
-      if (featuredLocation !== undefined) item.featuredLocation = featuredLocation === 'true' || featuredLocation === true;
-    }
-
-    // Handle file replacement
     if (req.file) {
-      // Remove old file if present
-      if (item.images && item.images.length > 0) {
-        item.images.forEach(imgPath => {
-          const oldPath = path.join(__dirname, 'uploads', path.basename(imgPath));
-          fs.unlink(oldPath, () => {});
-        });
-      }
-      item.images = [`/uploads/${req.file.filename}`];
+      body.images = [`/uploads/${req.file.filename}`];
     }
 
-    data[idx] = item;
-    await writeData(data);
-    res.json(item);
+    const updated = await contentModel.updateContent(id, body);
+    if (!updated) return res.status(404).json({ error: 'not found' });
+    res.json(updated);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'failed to update content' });
@@ -227,26 +245,444 @@ app.put('/api/content/:id', upload.single('file'), async (req, res) => {
 app.delete('/api/content/:id', async (req, res) => {
   try {
     const id = req.params.id;
-    const data = await readData();
-    const idx = data.findIndex(i => i.id === id);
-    if (idx === -1) return res.status(404).json({ error: 'not found' });
-    const item = data.splice(idx, 1)[0];
-    await writeData(data);
-    
-    // Clean up associated images
-    if (item.images && item.images.length > 0) {
+    const item = await contentModel.getContentById(id);
+    if (!item) return res.status(404).json({ error: 'not found' });
+
+    // attempt to remove uploaded files used by this content
+    if (item.images && Array.isArray(item.images)) {
       item.images.forEach(imgPath => {
         const filePath = path.join(uploadsDir, path.basename(imgPath));
         fs.unlink(filePath, () => {});
       });
     }
-    
+
+    await contentModel.deleteContent(id);
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'failed to delete content' });
   }
 });
+
+// ============================================
+// TAXONOMIES API - Categories
+// ============================================
+
+app.get('/api/categories', async (req, res) => {
+  try {
+    const categories = await categoriesModel.getAllCategories();
+    res.json(categories);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch categories' });
+  }
+});
+
+app.get('/api/categories/:id', async (req, res) => {
+  try {
+    const category = await categoriesModel.getCategoryById(req.params.id);
+    if (!category) return res.status(404).json({ error: 'category not found' });
+    const usageCount = await categoriesModel.getCategoryUsageCount(req.params.id);
+    res.json({ ...category, usage_count: usageCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch category' });
+  }
+});
+
+app.post('/api/categories', async (req, res) => {
+  try {
+    const category = await categoriesModel.createCategory(req.body);
+    res.status(201).json(category);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to create category' });
+  }
+});
+
+app.put('/api/categories/:id', async (req, res) => {
+  try {
+    const category = await categoriesModel.updateCategory(req.params.id, req.body);
+    if (!category) return res.status(404).json({ error: 'category not found' });
+    res.json(category);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to update category' });
+  }
+});
+
+app.delete('/api/categories/:id', async (req, res) => {
+  try {
+    await categoriesModel.deleteCategory(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to delete category' });
+  }
+});
+
+// ============================================
+// TAXONOMIES API - Types
+// ============================================
+
+app.get('/api/types', async (req, res) => {
+  try {
+    const types = await typesModel.getAllTypes();
+    res.json(types);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch types' });
+  }
+});
+
+app.get('/api/types/:id', async (req, res) => {
+  try {
+    const type = await typesModel.getTypeById(req.params.id);
+    if (!type) return res.status(404).json({ error: 'type not found' });
+    const usageCount = await typesModel.getTypeUsageCount(req.params.id);
+    res.json({ ...type, usage_count: usageCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch type' });
+  }
+});
+
+app.post('/api/types', async (req, res) => {
+  try {
+    const type = await typesModel.createType(req.body);
+    res.status(201).json(type);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to create type' });
+  }
+});
+
+app.put('/api/types/:id', async (req, res) => {
+  try {
+    const type = await typesModel.updateType(req.params.id, req.body);
+    if (!type) return res.status(404).json({ error: 'type not found' });
+    res.json(type);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to update type' });
+  }
+});
+
+app.delete('/api/types/:id', async (req, res) => {
+  try {
+    await typesModel.deleteType(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to delete type' });
+  }
+});
+
+// ============================================
+// BRANDS API
+// ============================================
+
+app.get('/api/brands', async (req, res) => {
+  try {
+    const { search, parent_id } = req.query;
+    let brands;
+    if (search) {
+      brands = await brandsModel.searchBrands(search);
+    } else if (parent_id) {
+      brands = await brandsModel.getBrandsByParent(parent_id);
+    } else {
+      brands = await brandsModel.getAllBrands();
+    }
+    res.json(brands);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch brands' });
+  }
+});
+
+app.get('/api/brands/:id', async (req, res) => {
+  try {
+    const brand = await brandsModel.getBrandById(req.params.id);
+    if (!brand) return res.status(404).json({ error: 'brand not found' });
+    res.json(brand);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch brand' });
+  }
+});
+
+app.post('/api/brands', async (req, res) => {
+  try {
+    const brand = await brandsModel.createBrand(req.body);
+    res.status(201).json(brand);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to create brand' });
+  }
+});
+
+app.put('/api/brands/:id', async (req, res) => {
+  try {
+    const brand = await brandsModel.updateBrand(req.params.id, req.body);
+    if (!brand) return res.status(404).json({ error: 'brand not found' });
+    res.json(brand);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to update brand' });
+  }
+});
+
+app.delete('/api/brands/:id', async (req, res) => {
+  try {
+    await brandsModel.deleteBrand(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to delete brand' });
+  }
+});
+
+// ============================================
+// BUSINESSES API
+// ============================================
+
+app.get('/api/businesses', async (req, res) => {
+  try {
+    const filters = {
+      brand_id: req.query.brand_id,
+      featured: req.query.featured === 'true' ? true : req.query.featured === 'false' ? false : undefined,
+      search: req.query.search
+    };
+    const businesses = await businessesModel.getAllBusinesses(filters);
+    res.json(businesses);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch businesses' });
+  }
+});
+
+app.get('/api/businesses/:id', async (req, res) => {
+  try {
+    const business = await businessesModel.getBusinessById(req.params.id);
+    if (!business) return res.status(404).json({ error: 'business not found' });
+    res.json(business);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch business' });
+  }
+});
+
+app.post('/api/businesses', async (req, res) => {
+  try {
+    const business = await businessesModel.createBusiness(req.body);
+    res.status(201).json(business);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to create business' });
+  }
+});
+
+app.put('/api/businesses/:id', async (req, res) => {
+  try {
+    const business = await businessesModel.updateBusiness(req.params.id, req.body);
+    if (!business) return res.status(404).json({ error: 'business not found' });
+    res.json(business);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to update business' });
+  }
+});
+
+app.delete('/api/businesses/:id', async (req, res) => {
+  try {
+    await businessesModel.deleteBusiness(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to delete business' });
+  }
+});
+
+// ============================================
+// ATTRACTIONS API
+// ============================================
+
+app.get('/api/attractions', async (req, res) => {
+  try {
+    const filters = {
+      featured: req.query.featured === 'true' ? true : req.query.featured === 'false' ? false : undefined,
+      search: req.query.search
+    };
+    const attractions = await attractionsModel.getAllAttractions(filters);
+    res.json(attractions);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch attractions' });
+  }
+});
+
+app.get('/api/attractions/:id', async (req, res) => {
+  try {
+    const attraction = await attractionsModel.getAttractionById(req.params.id);
+    if (!attraction) return res.status(404).json({ error: 'attraction not found' });
+    res.json(attraction);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch attraction' });
+  }
+});
+
+app.post('/api/attractions', async (req, res) => {
+  try {
+    const attraction = await attractionsModel.createAttraction(req.body);
+    res.status(201).json(attraction);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to create attraction' });
+  }
+});
+
+app.put('/api/attractions/:id', async (req, res) => {
+  try {
+    const attraction = await attractionsModel.updateAttraction(req.params.id, req.body);
+    if (!attraction) return res.status(404).json({ error: 'attraction not found' });
+    res.json(attraction);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to update attraction' });
+  }
+});
+
+app.delete('/api/attractions/:id', async (req, res) => {
+  try {
+    await attractionsModel.deleteAttraction(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to delete attraction' });
+  }
+});
+
+// ============================================
+// EVENTS API
+// ============================================
+
+app.get('/api/events', async (req, res) => {
+  try {
+    const filters = {
+      status: req.query.status,
+      search: req.query.search
+    };
+    const events = await eventsModel.getAllEvents(filters);
+    res.json(events);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch events' });
+  }
+});
+
+app.get('/api/events/:id', async (req, res) => {
+  try {
+    const event = await eventsModel.getEventById(req.params.id);
+    if (!event) return res.status(404).json({ error: 'event not found' });
+    res.json(event);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch event' });
+  }
+});
+
+app.post('/api/events', async (req, res) => {
+  try {
+    const event = await eventsModel.createEvent(req.body);
+    res.status(201).json(event);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to create event' });
+  }
+});
+
+app.put('/api/events/:id', async (req, res) => {
+  try {
+    const event = await eventsModel.updateEvent(req.params.id, req.body);
+    if (!event) return res.status(404).json({ error: 'event not found' });
+    res.json(event);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to update event' });
+  }
+});
+
+app.delete('/api/events/:id', async (req, res) => {
+  try {
+    await eventsModel.deleteEvent(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to delete event' });
+  }
+});
+
+// ============================================
+// SUB-EVENTS API
+// ============================================
+
+app.get('/api/subevents', async (req, res) => {
+  try {
+    const eventId = req.query.event_id;
+    const subevents = await subeventsModel.getAllSubEvents(eventId || null);
+    res.json(subevents);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch sub-events' });
+  }
+});
+
+app.get('/api/subevents/:id', async (req, res) => {
+  try {
+    const subevent = await subeventsModel.getSubEventById(req.params.id);
+    if (!subevent) return res.status(404).json({ error: 'sub-event not found' });
+    res.json(subevent);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch sub-event' });
+  }
+});
+
+app.post('/api/subevents', async (req, res) => {
+  try {
+    const subevent = await subeventsModel.createSubEvent(req.body);
+    res.status(201).json(subevent);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to create sub-event' });
+  }
+});
+
+app.put('/api/subevents/:id', async (req, res) => {
+  try {
+    const subevent = await subeventsModel.updateSubEvent(req.params.id, req.body);
+    if (!subevent) return res.status(404).json({ error: 'sub-event not found' });
+    res.json(subevent);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to update sub-event' });
+  }
+});
+
+app.delete('/api/subevents/:id', async (req, res) => {
+  try {
+    await subeventsModel.deleteSubEvent(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to delete sub-event' });
+  }
+});
+
+// ============================================
+// FILE MANAGEMENT
+// ============================================
 
 // List files in uploads
 app.get('/api/uploads', (req, res) => {
@@ -276,7 +712,16 @@ app.get('*', (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 Server listening on port ${PORT}`);
   console.log(`📍 Open http://localhost:${PORT} to access the CMS`);
+
+  // Try DB connection on startup (non-fatal)
+  try {
+    await db.testConnection();
+    console.log('🗄️  Connected to database successfully.');
+  } catch (err) {
+    console.warn('⚠️  Could not connect to database on startup. Endpoints that use DB will return errors.');
+    console.warn(err.message || err);
+  }
 });
