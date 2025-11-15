@@ -1,7 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const { signToken, verifyToken, setAuthCookie, clearAuthCookie, TOKEN_COOKIE } = require('./db/auth');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -15,6 +16,8 @@ const attractionsModel = require('./db/models/attractions');
 const eventsModel = require('./db/models/events');
 const subeventsModel = require('./db/models/subevents');
 const usersModel = require('./db/models/users');
+const hotspotModel = require('./db/hotspot');
+const supabase = require('./db/supabase');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,18 +27,9 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use(cookieParser());
 
-// Session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'explore-sarajevo-secret-key-change-in-production',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
+// Removed express-session to avoid Windows EPERM rename issues; using stateless JWT cookies instead.
 
 // Serve static files (CMS UI)
 const publicPath = path.join(__dirname, 'public');
@@ -57,12 +51,42 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
+// Separate in-memory storage for direct-to-Supabase uploads
+const memoryUpload = multer({ storage: multer.memoryStorage() });
+const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'media';
+
+// Helper to ensure bucket exists (auto-create if missing)
+async function ensureBucketExists() {
+  try {
+    const { data: buckets, error: listErr } = await supabase.storage.listBuckets();
+    if (listErr) {
+      console.warn('Storage listBuckets error:', listErr.message || listErr);
+      return false;
+    }
+    if (buckets && buckets.find(b => b.name === STORAGE_BUCKET)) {
+      return true;
+    }
+    const { error: createErr } = await supabase.storage.createBucket(STORAGE_BUCKET, { public: true });
+    if (createErr && !/exists/i.test(createErr.message || '')) {
+      console.warn('Storage createBucket error:', createErr.message || createErr);
+      return false;
+    }
+    console.log(`✅ Created storage bucket: ${STORAGE_BUCKET}`);
+    return true;
+  } catch (e) {
+    console.warn('ensureBucketExists exception:', e.message || e);
+    return false;
+  }
+}
 
 // Auth middleware
+// Auth middleware (JWT)
 function requireAuth(req, res, next) {
-  if (!req.session.user) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  const token = req.cookies[TOKEN_COOKIE];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  const decoded = verifyToken(token);
+  if (!decoded) return res.status(401).json({ error: 'Unauthorized' });
+  req.user = decoded;
   next();
 }
 
@@ -95,8 +119,8 @@ app.post('/api/auth/register', async (req, res) => {
     }
     
     const user = await usersModel.register(username, email, password);
-    req.session.user = user;
-    
+    const token = signToken(user);
+    setAuthCookie(res, token);
     res.status(201).json({ user });
   } catch (err) {
     console.error(err);
@@ -114,8 +138,8 @@ app.post('/api/auth/login', async (req, res) => {
     }
     
     const user = await usersModel.login(username, password);
-    req.session.user = user;
-    
+    const token = signToken(user);
+    setAuthCookie(res, token);
     res.json({ user });
   } catch (err) {
     console.error(err);
@@ -125,20 +149,17 @@ app.post('/api/auth/login', async (req, res) => {
 
 // Logout
 app.post('/api/auth/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ error: 'Logout failed' });
-    }
-    res.json({ message: 'Logged out successfully' });
-  });
+  clearAuthCookie(res);
+  res.json({ message: 'Logged out successfully' });
 });
 
 // Get current user
 app.get('/api/auth/me', (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-  res.json({ user: req.session.user });
+  const token = req.cookies[TOKEN_COOKIE];
+  if (!token) return res.status(401).json({ error: 'Not authenticated' });
+  const decoded = verifyToken(token);
+  if (!decoded) return res.status(401).json({ error: 'Invalid token' });
+  res.json({ user: decoded });
 });
 
 // CMS endpoints (DB-backed)
@@ -227,11 +248,7 @@ app.put('/api/content/:id', upload.single('file'), async (req, res) => {
   try {
     const id = req.params.id;
     const body = req.body || {};
-
-    if (req.file) {
-      body.images = [`/uploads/${req.file.filename}`];
-    }
-
+    if (req.file) body.images = [`/uploads/${req.file.filename}`];
     const updated = await contentModel.updateContent(id, body);
     if (!updated) return res.status(404).json({ error: 'not found' });
     res.json(updated);
@@ -681,21 +698,231 @@ app.delete('/api/subevents/:id', async (req, res) => {
 });
 
 // ============================================
+// HOTSPOT CONFIG - BLOCK SETS
+// ============================================
+
+app.get('/api/hotspot/blocks', (req, res) => {
+  try {
+    const sets = hotspotModel.getBlockSets();
+    res.json({ blockSets: sets });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to read hotspot blocks' });
+  }
+});
+
+app.put('/api/hotspot/blocks', async (req, res) => {
+  try {
+    if (!Array.isArray(req.body.blockSets)) {
+      return res.status(400).json({ error: 'blockSets array required' });
+    }
+    const saved = hotspotModel.saveBlockSets(req.body.blockSets);
+    res.json({ blockSets: saved });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to save hotspot blocks' });
+  }
+});
+
+app.get('/api/hotspot/footer', (req, res) => {
+  try {
+    res.json(hotspotModel.getFooter());
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to read footer' });
+  }
+});
+
+app.put('/api/hotspot/footer', (req, res) => {
+  try {
+    const saved = hotspotModel.saveFooter(req.body);
+    res.json(saved);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to save footer' });
+  }
+});
+
+app.get('/api/hotspot/editors-picks', (req, res) => {
+  try {
+    res.json({ picks: hotspotModel.getEditorsPicks() });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to read editors picks' });
+  }
+});
+
+app.put('/api/hotspot/editors-picks', (req, res) => {
+  try {
+    if (!Array.isArray(req.body.picks)) {
+      return res.status(400).json({ error: 'picks array required' });
+    }
+    const saved = hotspotModel.saveEditorsPicks(req.body.picks);
+    res.json({ picks: saved });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to save editors picks' });
+  }
+});
+
+app.get('/api/hotspot/discovery', (req, res) => {
+  try {
+    res.json({ places: hotspotModel.getDiscovery() });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to read discovery' });
+  }
+});
+
+app.put('/api/hotspot/discovery', (req, res) => {
+  try {
+    if (!Array.isArray(req.body.places)) {
+      return res.status(400).json({ error: 'places array required' });
+    }
+    const saved = hotspotModel.saveDiscovery(req.body.places);
+    res.json({ places: saved });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to save discovery' });
+  }
+});
+
+app.get('/api/hotspot/quick-fun', (req, res) => {
+  try {
+    res.json(hotspotModel.getQuickFun());
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to read quick fun' });
+  }
+});
+
+app.put('/api/hotspot/quick-fun', (req, res) => {
+  try {
+    const saved = hotspotModel.saveQuickFun(req.body);
+    res.json(saved);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to save quick fun' });
+  }
+});
+
+app.get('/api/hotspot/utilities', (req, res) => {
+  try {
+    res.json(hotspotModel.getUtilities());
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to read utilities' });
+  }
+});
+
+app.put('/api/hotspot/utilities', (req, res) => {
+  try {
+    const saved = hotspotModel.saveUtilities(req.body);
+    res.json(saved);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to save utilities' });
+  }
+});
+
+// ============================================
 // FILE MANAGEMENT
 // ============================================
 
 // List files in uploads
-app.get('/api/uploads', (req, res) => {
-  fs.readdir(uploadsDir, (err, files) => {
-    if (err) return res.status(500).json({ error: 'failed to read uploads' });
-    res.json({ files });
-  });
+app.get('/api/uploads', async (req, res) => {
+  try {
+    // List files from Supabase Storage under 'uploads/' prefix
+    const prefix = 'uploads';
+    const { data: files, error } = await supabase.storage.from(STORAGE_BUCKET).list(prefix, {
+      limit: 100,
+      sortBy: { column: 'created_at', order: 'desc' }
+    });
+    if (error) {
+      if (/not\s*found|does\s*not\s*exist/i.test(error.message || '')) {
+        const ok = await ensureBucketExists();
+        if (!ok) {
+          return res.status(500).json({ error: 'Bucket not found and could not be created (service role key required)' });
+        }
+        // Retry once
+        const retry = await supabase.storage.from(STORAGE_BUCKET).list(prefix, { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
+        if (retry.error) return res.status(500).json({ error: retry.error.message });
+        const retryFiles = retry.data || [];
+        const result = retryFiles
+          .filter(f => f && f.name && f.name !== '.emptyFolderPlaceholder')
+          .map(f => {
+            const path = `${prefix}/${f.name}`;
+            const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+            return { name: f.name, path, url: data.publicUrl };
+          });
+        return res.json({ files: result });
+      }
+      return res.status(500).json({ error: error.message });
+    }
+
+    const result = (files || [])
+      .filter(f => f && f.name && f.name !== '.emptyFolderPlaceholder')
+      .map(f => {
+        const path = `${prefix}/${f.name}`;
+        const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        return { name: f.name, path, url: data.publicUrl };
+      });
+
+    res.json({ files: result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to list uploads' });
+  }
 });
 
-// Upload endpoint
-app.post('/api/upload', upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'no file uploaded' });
-  res.json({ filename: req.file.filename, path: `/uploads/${req.file.filename}` });
+// Upload endpoint -> Supabase Storage (MinIO)
+app.post('/api/upload', memoryUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'no file uploaded' });
+
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const safeName = req.file.originalname.replace(/[^a-zA-Z0-9.-_]/g, '_');
+    const storagePath = `uploads/${unique}-${safeName}`;
+
+    let { error: uploadError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(storagePath, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: false
+      });
+    if (uploadError) {
+      // Try to create the bucket if missing (requires service role key)
+      if (/not\s*found|does\s*not\s*exist/i.test(uploadError.message || '') || uploadError.statusCode === 404) {
+        try {
+          const ok = await ensureBucketExists();
+          if (!ok) {
+            return res.status(500).json({ error: 'Bucket not found and could not be created (service role key required)' });
+          }
+          // Retry upload once
+          const retry = await supabase.storage
+            .from(STORAGE_BUCKET)
+            .upload(storagePath, req.file.buffer, {
+              contentType: req.file.mimetype,
+              upsert: false
+            });
+          uploadError = retry.error || null;
+        } catch (e) {
+          console.error('Bucket create exception:', e.message);
+          return res.status(500).json({ error: 'Could not create bucket: ' + e.message });
+        }
+      }
+      if (uploadError) {
+        console.error('Upload error:', uploadError.message || uploadError);
+        return res.status(500).json({ error: uploadError.message || 'upload failed' });
+      }
+    }
+
+    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath);
+    return res.json({ filename: safeName, path: storagePath, url: data.publicUrl });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'upload failed' });
+  }
 });
 
 // Root route - serve CMS dashboard

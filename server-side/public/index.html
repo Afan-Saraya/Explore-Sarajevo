@@ -59,37 +59,22 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <h1>🗺️ Explore Sarajevo</h1>
+        <h1>🗺️ Saraya Solutions Dashboard</h1>
         <p class="subtitle">Content Management</p>
       </div>
 
-      <nav class="sidebar-nav">
-        <div class="nav-section">
-          <h3>Dashboard</h3>
-          <a href="#" data-view="dashboard" class="nav-link active">
-            <span>📊</span> Dashboard
-          </a>
-        </div>
+      <!-- Site Selector -->
+      <div class="site-selector">
+        <label for="site-select">Select Site:</label>
+        <select id="site-select" class="site-dropdown">
+          <option value="explore-sarajevo">Explore Sarajevo</option>
+          <option value="hotspot">Hotspot</option>
+          <option value="pametno-odabrano">Pametno Odabrano</option>
+        </select>
+      </div>
 
-        <div class="nav-section">
-          <h3>Content</h3>
-          <a href="#" data-view="brands" class="nav-link"><span>🏷️</span> Brands</a>
-          <a href="#" data-view="businesses" class="nav-link"><span>🏢</span> Businesses</a>
-          <a href="#" data-view="attractions" class="nav-link"><span>🏛️</span> Attractions</a>
-          <a href="#" data-view="events" class="nav-link"><span>🎉</span> Events</a>
-          <a href="#" data-view="subevents" class="nav-link"><span>📅</span> Sub-events</a>
-        </div>
-
-        <div class="nav-section">
-          <h3>Taxonomies</h3>
-          <a href="#" data-view="categories" class="nav-link"><span>📁</span> Categories</a>
-          <a href="#" data-view="types" class="nav-link"><span>🏷️</span> Types</a>
-        </div>
-
-        <div class="nav-section">
-          <h3>Media</h3>
-          <a href="#" data-view="uploads" class="nav-link"><span>🖼️</span> File Uploads</a>
-        </div>
+      <nav class="sidebar-nav" id="sidebar-nav">
+        <!-- Navigation will be dynamically loaded based on selected site -->
       </nav>
       
       <div class="sidebar-footer">
@@ -113,6 +98,9 @@
       <div id="modal-body"></div>
     </div>
   </div>
+
+  <!-- Notification Toast -->
+  <div id="notification" class="notification"></div>
 
   <script src="app.js"></script>
 </body>

@@ -1,60 +1,53 @@
-const db = require('../index');
+const { supabase } = require('../index');
 
 // Get all attractions with related data
 async function getAllAttractions(filters = {}) {
-  let query = `
-    SELECT a.*,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('id', c.id, 'name', c.name)) 
-        FILTER (WHERE c.id IS NOT NULL), '[]') as categories,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('id', t.id, 'name', t.name)) 
-        FILTER (WHERE t.id IS NOT NULL), '[]') as types
-    FROM attractions a
-    LEFT JOIN attraction_categories ac ON a.id = ac.attraction_id
-    LEFT JOIN categories c ON ac.category_id = c.id
-    LEFT JOIN attraction_types at ON a.id = at.attraction_id
-    LEFT JOIN types t ON at.type_id = t.id
-    WHERE 1=1
-  `;
-  
-  const params = [];
-  let paramCount = 1;
+  let query = supabase
+    .from('attractions')
+    .select('*, attraction_categories(category:categories(id, name)), attraction_types(type:types(id, name))');
   
   if (filters.featured !== undefined) {
-    query += ` AND a.featured_location = $${paramCount}`;
-    params.push(filters.featured);
-    paramCount++;
+    query = query.eq('featured_location', filters.featured);
   }
   
   if (filters.search) {
-    query += ` AND (a.name ILIKE $${paramCount} OR a.slug ILIKE $${paramCount})`;
-    params.push(`%${filters.search}%`);
-    paramCount++;
+    query = query.or(`name.ilike.%${filters.search}%,slug.ilike.%${filters.search}%`);
   }
   
-  query += ` GROUP BY a.id ORDER BY a.name ASC`;
+  query = query.order('name', { ascending: true });
   
-  const result = await db.query(query, params);
-  return result.rows;
+  const { data, error } = await query;
+  
+  if (error) throw error;
+  
+  // Transform nested data to match original format
+  return data.map(attraction => ({
+    ...attraction,
+    categories: attraction.attraction_categories.map(ac => ac.category).filter(Boolean),
+    attraction_categories: undefined,
+    types: attraction.attraction_types.map(at => at.type).filter(Boolean),
+    attraction_types: undefined
+  }));
 }
 
 // Get single attraction by ID
 async function getAttractionById(id) {
-  const result = await db.query(
-    `SELECT a.*,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('id', c.id, 'name', c.name)) 
-        FILTER (WHERE c.id IS NOT NULL), '[]') as categories,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('id', t.id, 'name', t.name)) 
-        FILTER (WHERE t.id IS NOT NULL), '[]') as types
-     FROM attractions a
-     LEFT JOIN attraction_categories ac ON a.id = ac.attraction_id
-     LEFT JOIN categories c ON ac.category_id = c.id
-     LEFT JOIN attraction_types at ON a.id = at.attraction_id
-     LEFT JOIN types t ON at.type_id = t.id
-     WHERE a.id = $1
-     GROUP BY a.id`,
-    [id]
-  );
-  return result.rows[0];
+  const { data, error } = await supabase
+    .from('attractions')
+    .select('*, attraction_categories(category:categories(id, name)), attraction_types(type:types(id, name))')
+    .eq('id', id)
+    .single();
+  
+  if (error) throw error;
+  
+  // Transform nested data
+  return {
+    ...data,
+    categories: data.attraction_categories.map(ac => ac.category).filter(Boolean),
+    attraction_categories: undefined,
+    types: data.attraction_types.map(at => at.type).filter(Boolean),
+    attraction_types: undefined
+  };
 }
 
 // Create attraction
@@ -65,56 +58,55 @@ async function createAttraction(data) {
     category_ids = [], type_ids = []
   } = data;
   
-  const client = await db.pool.connect();
   try {
-    await client.query('BEGIN');
-    
     // Insert attraction
-    const result = await client.query(
-      `INSERT INTO attractions 
-       (name, slug, description, address, location, featured_location, media)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING *`,
-      [
+    const { data: attraction, error: attractionError } = await supabase
+      .from('attractions')
+      .insert([{
         name,
-        slug || generateSlug(name),
-        description || '',
-        address || '',
-        location || '',
-        featured_location || false,
-        media ? JSON.stringify(media) : null
-      ]
-    );
+        slug: slug || generateSlug(name),
+        description: description || '',
+        address: address || '',
+        location: location || '',
+        featured_location: featured_location || false,
+        media: media || null
+      }])
+      .select()
+      .single();
     
-    const attraction = result.rows[0];
+    if (attractionError) throw attractionError;
     
     // Insert categories
     if (category_ids.length > 0) {
-      for (const categoryId of category_ids) {
-        await client.query(
-          'INSERT INTO attraction_categories (attraction_id, category_id) VALUES ($1, $2)',
-          [attraction.id, categoryId]
-        );
-      }
+      const categoryLinks = category_ids.map(categoryId => ({
+        attraction_id: attraction.id,
+        category_id: categoryId
+      }));
+      
+      const { error: catError } = await supabase
+        .from('attraction_categories')
+        .insert(categoryLinks);
+      
+      if (catError) throw catError;
     }
     
     // Insert types
     if (type_ids.length > 0) {
-      for (const typeId of type_ids) {
-        await client.query(
-          'INSERT INTO attraction_types (attraction_id, type_id) VALUES ($1, $2)',
-          [attraction.id, typeId]
-        );
-      }
+      const typeLinks = type_ids.map(typeId => ({
+        attraction_id: attraction.id,
+        type_id: typeId
+      }));
+      
+      const { error: typeError } = await supabase
+        .from('attraction_types')
+        .insert(typeLinks);
+      
+      if (typeError) throw typeError;
     }
     
-    await client.query('COMMIT');
     return await getAttractionById(attraction.id);
   } catch (err) {
-    await client.query('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
   }
 }
 
@@ -126,81 +118,82 @@ async function updateAttraction(id, data) {
     category_ids, type_ids
   } = data;
   
-  const client = await db.pool.connect();
   try {
-    await client.query('BEGIN');
+    // Build update object
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (slug !== undefined) updates.slug = slug;
+    if (description !== undefined) updates.description = description;
+    if (address !== undefined) updates.address = address;
+    if (location !== undefined) updates.location = location;
+    if (featured_location !== undefined) updates.featured_location = featured_location;
+    if (media !== undefined) updates.media = media;
     
     // Update attraction
-    await client.query(
-      `UPDATE attractions 
-       SET name = COALESCE($1, name),
-           slug = COALESCE($2, slug),
-           description = COALESCE($3, description),
-           address = COALESCE($4, address),
-           location = COALESCE($5, location),
-           featured_location = COALESCE($6, featured_location),
-           media = COALESCE($7, media),
-           updated_at = NOW()
-       WHERE id = $8`,
-      [
-        name, slug, description, address, location,
-        featured_location,
-        media ? JSON.stringify(media) : undefined,
-        id
-      ]
-    );
+    const { error: updateError } = await supabase
+      .from('attractions')
+      .update(updates)
+      .eq('id', id);
+    
+    if (updateError) throw updateError;
     
     // Update categories if provided
     if (category_ids !== undefined) {
-      await client.query('DELETE FROM attraction_categories WHERE attraction_id = $1', [id]);
+      await supabase.from('attraction_categories').delete().eq('attraction_id', id);
+      
       if (category_ids.length > 0) {
-        for (const categoryId of category_ids) {
-          await client.query(
-            'INSERT INTO attraction_categories (attraction_id, category_id) VALUES ($1, $2)',
-            [id, categoryId]
-          );
-        }
+        const categoryLinks = category_ids.map(categoryId => ({
+          attraction_id: id,
+          category_id: categoryId
+        }));
+        
+        const { error: catError } = await supabase
+          .from('attraction_categories')
+          .insert(categoryLinks);
+        
+        if (catError) throw catError;
       }
     }
     
     // Update types if provided
     if (type_ids !== undefined) {
-      await client.query('DELETE FROM attraction_types WHERE attraction_id = $1', [id]);
+      await supabase.from('attraction_types').delete().eq('attraction_id', id);
+      
       if (type_ids.length > 0) {
-        for (const typeId of type_ids) {
-          await client.query(
-            'INSERT INTO attraction_types (attraction_id, type_id) VALUES ($1, $2)',
-            [id, typeId]
-          );
-        }
+        const typeLinks = type_ids.map(typeId => ({
+          attraction_id: id,
+          type_id: typeId
+        }));
+        
+        const { error: typeError } = await supabase
+          .from('attraction_types')
+          .insert(typeLinks);
+        
+        if (typeError) throw typeError;
       }
     }
     
-    await client.query('COMMIT');
     return await getAttractionById(id);
   } catch (err) {
-    await client.query('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
   }
 }
 
 // Delete attraction
 async function deleteAttraction(id) {
-  const client = await db.pool.connect();
   try {
-    await client.query('BEGIN');
-    await client.query('DELETE FROM attraction_categories WHERE attraction_id = $1', [id]);
-    await client.query('DELETE FROM attraction_types WHERE attraction_id = $1', [id]);
-    await client.query('DELETE FROM attractions WHERE id = $1', [id]);
-    await client.query('COMMIT');
+    await supabase.from('attraction_categories').delete().eq('attraction_id', id);
+    await supabase.from('attraction_types').delete().eq('attraction_id', id);
+    
+    const { error } = await supabase
+      .from('attractions')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
     return true;
   } catch (err) {
-    await client.query('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
   }
 }
 

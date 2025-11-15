@@ -1,105 +1,132 @@
-const db = require('../index');
+const { supabase } = require('../index');
 
 // Get all brands with optional parent brand name
 async function getAllBrands() {
-  const result = await db.query(
-    `SELECT b.*, pb.name as parent_brand_name,
-      (SELECT COUNT(*) FROM businesses WHERE brand_id = b.id) as business_count
-     FROM brands b
-     LEFT JOIN brands pb ON b.parent_brand_id = pb.id
-     ORDER BY b.name ASC`
+  const { data, error } = await supabase
+    .from('brands')
+    .select('*, parent_brand:brands!parent_brand_id(id, name)')
+    .order('name', { ascending: true });
+  
+  if (error) throw error;
+  
+  // Get business counts for each brand
+  const brandsWithCounts = await Promise.all(
+    data.map(async (brand) => {
+      const { count } = await supabase
+        .from('businesses')
+        .select('*', { count: 'exact', head: true })
+        .eq('brand_id', brand.id);
+      
+      return {
+        ...brand,
+        parent_brand_name: brand.parent_brand?.name || null,
+        business_count: count || 0
+      };
+    })
   );
-  return result.rows;
+  
+  return brandsWithCounts;
 }
 
 // Get single brand by ID
 async function getBrandById(id) {
-  const result = await db.query(
-    `SELECT b.*, pb.name as parent_brand_name
-     FROM brands b
-     LEFT JOIN brands pb ON b.parent_brand_id = pb.id
-     WHERE b.id = $1`,
-    [id]
-  );
-  return result.rows[0];
+  const { data, error } = await supabase
+    .from('brands')
+    .select('*, parent_brand:brands!parent_brand_id(id, name)')
+    .eq('id', id)
+    .single();
+  
+  if (error) throw error;
+  
+  return {
+    ...data,
+    parent_brand_name: data.parent_brand?.name || null
+  };
 }
 
 // Create brand
 async function createBrand(data) {
   const { name, slug, description, media, business_id, parent_brand_id, brand_pdv } = data;
-  const result = await db.query(
-    `INSERT INTO brands (name, slug, description, media, business_id, parent_brand_id, brand_pdv)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
-     RETURNING *`,
-    [
+  
+  const { data: newBrand, error } = await supabase
+    .from('brands')
+    .insert([{
       name,
-      slug || generateSlug(name),
-      description || '',
-      media ? JSON.stringify(media) : null,
-      business_id || null,
-      parent_brand_id || null,
-      brand_pdv || null
-    ]
-  );
-  return result.rows[0];
+      slug: slug || generateSlug(name),
+      description: description || '',
+      media: media || null,
+      business_id: business_id || null,
+      parent_brand_id: parent_brand_id || null,
+      brand_pdv: brand_pdv || null
+    }])
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return newBrand;
 }
 
 // Update brand
 async function updateBrand(id, data) {
   const { name, slug, description, media, business_id, parent_brand_id, brand_pdv } = data;
   
-  const result = await db.query(
-    `UPDATE brands 
-     SET name = COALESCE($1, name),
-         slug = COALESCE($2, slug),
-         description = COALESCE($3, description),
-         media = COALESCE($4, media),
-         business_id = COALESCE($5, business_id),
-         parent_brand_id = COALESCE($6, parent_brand_id),
-         brand_pdv = COALESCE($7, brand_pdv),
-         updated_at = NOW()
-     WHERE id = $8
-     RETURNING *`,
-    [
-      name,
-      slug,
-      description,
-      media ? JSON.stringify(media) : undefined,
-      business_id,
-      parent_brand_id,
-      brand_pdv,
-      id
-    ]
-  );
-  return result.rows[0];
+  const updates = {};
+  if (name !== undefined) updates.name = name;
+  if (slug !== undefined) updates.slug = slug;
+  if (description !== undefined) updates.description = description;
+  if (media !== undefined) updates.media = media;
+  if (business_id !== undefined) updates.business_id = business_id;
+  if (parent_brand_id !== undefined) updates.parent_brand_id = parent_brand_id;
+  if (brand_pdv !== undefined) updates.brand_pdv = brand_pdv;
+  
+  const { data: updatedBrand, error } = await supabase
+    .from('brands')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return updatedBrand;
 }
 
 // Delete brand
 async function deleteBrand(id) {
-  await db.query('DELETE FROM brands WHERE id = $1', [id]);
+  const { error } = await supabase
+    .from('brands')
+    .delete()
+    .eq('id', id);
+  
+  if (error) throw error;
   return true;
 }
 
 // Search brands by name or slug
 async function searchBrands(searchTerm) {
-  const result = await db.query(
-    `SELECT b.*, pb.name as parent_brand_name
-     FROM brands b
-     LEFT JOIN brands pb ON b.parent_brand_id = pb.id
-     WHERE b.name ILIKE $1 OR b.slug ILIKE $1
-     ORDER BY b.name ASC`,
-    [`%${searchTerm}%`]
-  );
-  return result.rows;
+  const { data, error } = await supabase
+    .from('brands')
+    .select('*, parent_brand:brands!parent_brand_id(id, name)')
+    .or(`name.ilike.%${searchTerm}%,slug.ilike.%${searchTerm}%`)
+    .order('name', { ascending: true });
+  
+  if (error) throw error;
+  
+  return data.map(brand => ({
+    ...brand,
+    parent_brand_name: brand.parent_brand?.name || null
+  }));
 }
 
 // Get brands by parent
 async function getBrandsByParent(parentId) {
-  const result = await db.query(
-    'SELECT * FROM brands WHERE parent_brand_id = $1 ORDER BY name ASC',
-    [parentId]
-  );
-  return result.rows;
+  const { data, error } = await supabase
+    .from('brands')
+    .select('*')
+    .eq('parent_brand_id', parentId)
+    .order('name', { ascending: true });
+  
+  if (error) throw error;
+  return data;
 }
 
 // Helper: generate slug from name

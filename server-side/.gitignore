@@ -33,18 +33,11 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
-.env.local
-.env.*.local
-'@ | Set-Content -Path .gitignore -Encoding utf8
 
 # OS / Editor
 .DS_Store
 Thumbs.db
 .vscode/
-
-# vercel
-.vercel
 
 # typescript
 *.tsbuildinfo

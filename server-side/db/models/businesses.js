@@ -1,68 +1,64 @@
-const db = require('../index');
+const { supabase } = require('../index');
 
 // Get all businesses with related data
 async function getAllBusinesses(filters = {}) {
-  let query = `
-    SELECT b.*, br.name as brand_name,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('id', c.id, 'name', c.name)) 
-        FILTER (WHERE c.id IS NOT NULL), '[]') as categories,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('id', t.id, 'name', t.name)) 
-        FILTER (WHERE t.id IS NOT NULL), '[]') as types
-    FROM businesses b
-    LEFT JOIN brands br ON b.brand_id = br.id
-    LEFT JOIN business_categories bc ON b.id = bc.business_id
-    LEFT JOIN categories c ON bc.category_id = c.id
-    LEFT JOIN business_types bt ON b.id = bt.business_id
-    LEFT JOIN types t ON bt.type_id = t.id
-    WHERE 1=1
-  `;
-  
-  const params = [];
-  let paramCount = 1;
+  let query = supabase
+    .from('businesses')
+    .select(`
+      *,
+      brand:brands(id, name),
+      business_categories(category:categories(id, name)),
+      business_types(type:types(id, name))
+    `)
+    .order('name', { ascending: true });
   
   if (filters.brand_id) {
-    query += ` AND b.brand_id = $${paramCount}`;
-    params.push(filters.brand_id);
-    paramCount++;
+    query = query.eq('brand_id', filters.brand_id);
   }
   
   if (filters.featured !== undefined) {
-    query += ` AND b.featured_business = $${paramCount}`;
-    params.push(filters.featured);
-    paramCount++;
+    query = query.eq('featured_business', filters.featured);
   }
   
   if (filters.search) {
-    query += ` AND (b.name ILIKE $${paramCount} OR b.slug ILIKE $${paramCount})`;
-    params.push(`%${filters.search}%`);
-    paramCount++;
+    query = query.or(`name.ilike.%${filters.search}%,slug.ilike.%${filters.search}%`);
   }
   
-  query += ` GROUP BY b.id, br.name ORDER BY b.name ASC`;
+  const { data, error } = await query;
   
-  const result = await db.query(query, params);
-  return result.rows;
+  if (error) throw error;
+  
+  // Transform data to match expected format
+  return (data || []).map(business => ({
+    ...business,
+    brand_name: business.brand?.name || null,
+    categories: business.business_categories?.map(bc => bc.category).filter(Boolean) || [],
+    types: business.business_types?.map(bt => bt.type).filter(Boolean) || []
+  }));
 }
 
 // Get single business by ID
 async function getBusinessById(id) {
-  const result = await db.query(
-    `SELECT b.*, br.name as brand_name,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('id', c.id, 'name', c.name)) 
-        FILTER (WHERE c.id IS NOT NULL), '[]') as categories,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('id', t.id, 'name', t.name)) 
-        FILTER (WHERE t.id IS NOT NULL), '[]') as types
-     FROM businesses b
-     LEFT JOIN brands br ON b.brand_id = br.id
-     LEFT JOIN business_categories bc ON b.id = bc.business_id
-     LEFT JOIN categories c ON bc.category_id = c.id
-     LEFT JOIN business_types bt ON b.id = bt.business_id
-     LEFT JOIN types t ON bt.type_id = t.id
-     WHERE b.id = $1
-     GROUP BY b.id, br.name`,
-    [id]
-  );
-  return result.rows[0];
+  const { data, error } = await supabase
+    .from('businesses')
+    .select(`
+      *,
+      brand:brands(id, name),
+      business_categories(category:categories(id, name)),
+      business_types(type:types(id, name))
+    `)
+    .eq('id', id)
+    .single();
+  
+  if (error) throw error;
+  
+  // Transform data to match expected format
+  return {
+    ...data,
+    brand_name: data.brand?.name || null,
+    categories: data.business_categories?.map(bc => bc.category).filter(Boolean) || [],
+    types: data.business_types?.map(bt => bt.type).filter(Boolean) || []
+  };
 }
 
 // Create business
@@ -73,62 +69,60 @@ async function createBusiness(data) {
     category_ids = [], type_ids = []
   } = data;
   
-  const client = await db.pool.connect();
   try {
-    await client.query('BEGIN');
-    
     // Insert business
-    const result = await client.query(
-      `INSERT INTO businesses 
-       (name, slug, brand_id, description, address, location, rating, working_hours,
-        featured_business, telephone, website, media)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-       RETURNING *`,
-      [
+    const { data: business, error: businessError } = await supabase
+      .from('businesses')
+      .insert([{
         name,
-        slug || generateSlug(name),
-        brand_id || null,
-        description || '',
-        address || '',
-        location || '',
-        rating || null,
-        working_hours || null,
-        featured_business || false,
-        telephone || null,
-        website || null,
-        media ? JSON.stringify(media) : null
-      ]
-    );
+        slug: slug || generateSlug(name),
+        brand_id: brand_id || null,
+        description: description || '',
+        address: address || '',
+        location: location || '',
+        rating: rating || null,
+        working_hours: working_hours || null,
+        featured_business: featured_business || false,
+        telephone: telephone || null,
+        website: website || null,
+        media: media || null
+      }])
+      .select()
+      .single();
     
-    const business = result.rows[0];
+    if (businessError) throw businessError;
     
     // Insert categories
     if (category_ids.length > 0) {
-      for (const categoryId of category_ids) {
-        await client.query(
-          'INSERT INTO business_categories (business_id, category_id) VALUES ($1, $2)',
-          [business.id, categoryId]
-        );
-      }
+      const categoryLinks = category_ids.map(categoryId => ({
+        business_id: business.id,
+        category_id: categoryId
+      }));
+      
+      const { error: catError } = await supabase
+        .from('business_categories')
+        .insert(categoryLinks);
+      
+      if (catError) throw catError;
     }
     
     // Insert types
     if (type_ids.length > 0) {
-      for (const typeId of type_ids) {
-        await client.query(
-          'INSERT INTO business_types (business_id, type_id) VALUES ($1, $2)',
-          [business.id, typeId]
-        );
-      }
+      const typeLinks = type_ids.map(typeId => ({
+        business_id: business.id,
+        type_id: typeId
+      }));
+      
+      const { error: typeError } = await supabase
+        .from('business_types')
+        .insert(typeLinks);
+      
+      if (typeError) throw typeError;
     }
     
-    await client.query('COMMIT');
     return await getBusinessById(business.id);
   } catch (err) {
-    await client.query('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
   }
 }
 
@@ -140,86 +134,89 @@ async function updateBusiness(id, data) {
     category_ids, type_ids
   } = data;
   
-  const client = await db.pool.connect();
   try {
-    await client.query('BEGIN');
+    // Build update object with only provided fields
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (slug !== undefined) updates.slug = slug;
+    if (brand_id !== undefined) updates.brand_id = brand_id;
+    if (description !== undefined) updates.description = description;
+    if (address !== undefined) updates.address = address;
+    if (location !== undefined) updates.location = location;
+    if (rating !== undefined) updates.rating = rating;
+    if (working_hours !== undefined) updates.working_hours = working_hours;
+    if (featured_business !== undefined) updates.featured_business = featured_business;
+    if (telephone !== undefined) updates.telephone = telephone;
+    if (website !== undefined) updates.website = website;
+    if (media !== undefined) updates.media = media;
     
     // Update business
-    await client.query(
-      `UPDATE businesses 
-       SET name = COALESCE($1, name),
-           slug = COALESCE($2, slug),
-           brand_id = COALESCE($3, brand_id),
-           description = COALESCE($4, description),
-           address = COALESCE($5, address),
-           location = COALESCE($6, location),
-           rating = COALESCE($7, rating),
-           working_hours = COALESCE($8, working_hours),
-           featured_business = COALESCE($9, featured_business),
-           telephone = COALESCE($10, telephone),
-           website = COALESCE($11, website),
-           media = COALESCE($12, media),
-           updated_at = NOW()
-       WHERE id = $13`,
-      [
-        name, slug, brand_id, description, address, location,
-        rating, working_hours, featured_business, telephone, website,
-        media ? JSON.stringify(media) : undefined,
-        id
-      ]
-    );
+    const { error: updateError } = await supabase
+      .from('businesses')
+      .update(updates)
+      .eq('id', id);
+    
+    if (updateError) throw updateError;
     
     // Update categories if provided
     if (category_ids !== undefined) {
-      await client.query('DELETE FROM business_categories WHERE business_id = $1', [id]);
+      await supabase.from('business_categories').delete().eq('business_id', id);
+      
       if (category_ids.length > 0) {
-        for (const categoryId of category_ids) {
-          await client.query(
-            'INSERT INTO business_categories (business_id, category_id) VALUES ($1, $2)',
-            [id, categoryId]
-          );
-        }
+        const categoryLinks = category_ids.map(categoryId => ({
+          business_id: id,
+          category_id: categoryId
+        }));
+        
+        const { error: catError } = await supabase
+          .from('business_categories')
+          .insert(categoryLinks);
+        
+        if (catError) throw catError;
       }
     }
     
     // Update types if provided
     if (type_ids !== undefined) {
-      await client.query('DELETE FROM business_types WHERE business_id = $1', [id]);
+      await supabase.from('business_types').delete().eq('business_id', id);
+      
       if (type_ids.length > 0) {
-        for (const typeId of type_ids) {
-          await client.query(
-            'INSERT INTO business_types (business_id, type_id) VALUES ($1, $2)',
-            [id, typeId]
-          );
-        }
+        const typeLinks = type_ids.map(typeId => ({
+          business_id: id,
+          type_id: typeId
+        }));
+        
+        const { error: typeError } = await supabase
+          .from('business_types')
+          .insert(typeLinks);
+        
+        if (typeError) throw typeError;
       }
     }
     
-    await client.query('COMMIT');
     return await getBusinessById(id);
   } catch (err) {
-    await client.query('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
   }
 }
 
 // Delete business
 async function deleteBusiness(id) {
-  const client = await db.pool.connect();
   try {
-    await client.query('BEGIN');
-    await client.query('DELETE FROM business_categories WHERE business_id = $1', [id]);
-    await client.query('DELETE FROM business_types WHERE business_id = $1', [id]);
-    await client.query('DELETE FROM businesses WHERE id = $1', [id]);
-    await client.query('COMMIT');
+    // Delete categories and types first (if no CASCADE is set)
+    await supabase.from('business_categories').delete().eq('business_id', id);
+    await supabase.from('business_types').delete().eq('business_id', id);
+    
+    // Delete business
+    const { error } = await supabase
+      .from('businesses')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
     return true;
   } catch (err) {
-    await client.query('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
   }
 }
 

@@ -1,5 +1,18 @@
 -- Create tables based on provided spreadsheet
 -- Run with: node db/migrate.js
+-- Or manually copy/paste into Supabase SQL Editor
+
+-- Users table (for authentication)
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT DEFAULT 'user',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 
 -- Content table (for CMS items)
 CREATE TABLE IF NOT EXISTS content (
@@ -181,3 +194,25 @@ CREATE INDEX IF NOT EXISTS idx_category_slug ON categories (slug);
 CREATE INDEX IF NOT EXISTS idx_type_slug ON types (slug);
 CREATE INDEX IF NOT EXISTS idx_attraction_slug ON attractions (slug);
 CREATE INDEX IF NOT EXISTS idx_event_slug ON events (slug);
+
+-- Disable RLS (Row Level Security) for all tables
+-- This allows the anon key to read/write without authentication
+-- Re-enable if you want to use Supabase Auth later
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE content DISABLE ROW LEVEL SECURITY;
+ALTER TABLE businesses DISABLE ROW LEVEL SECURITY;
+ALTER TABLE brands DISABLE ROW LEVEL SECURITY;
+ALTER TABLE categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE types DISABLE ROW LEVEL SECURITY;
+ALTER TABLE attractions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE sub_events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE business_categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE business_types DISABLE ROW LEVEL SECURITY;
+ALTER TABLE category_types DISABLE ROW LEVEL SECURITY;
+ALTER TABLE attraction_categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE attraction_types DISABLE ROW LEVEL SECURITY;
+ALTER TABLE event_categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE event_types DISABLE ROW LEVEL SECURITY;
+ALTER TABLE sub_event_categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE sub_event_types DISABLE ROW LEVEL SECURITY;

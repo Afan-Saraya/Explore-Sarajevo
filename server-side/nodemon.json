@@ -1,0 +1,12 @@
+{
+  "ignore": [
+    "sessions/*",
+    "uploads/*"
+  ],
+  "watch": [
+    "server.js",
+    "db/**/*.js",
+    "public/app.js"
+  ],
+  "ext": "js,mjs,json"
+}

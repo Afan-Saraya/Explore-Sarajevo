@@ -1,58 +1,50 @@
-const db = require('../index');
+const { supabase } = require('../index');
 
 // Get all sub-events (optionally filtered by event)
 async function getAllSubEvents(eventId = null) {
-  let query = `
-    SELECT se.*,
-      e.name as event_name,
-      LOWER(se.date_range) as start_date,
-      UPPER(se.date_range) as end_date,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('id', c.id, 'name', c.name)) 
-        FILTER (WHERE c.id IS NOT NULL), '[]') as categories,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('id', t.id, 'name', t.name)) 
-        FILTER (WHERE t.id IS NOT NULL), '[]') as types
-    FROM sub_events se
-    LEFT JOIN events e ON se.event_id = e.id
-    LEFT JOIN sub_event_categories sec ON se.id = sec.sub_event_id
-    LEFT JOIN categories c ON sec.category_id = c.id
-    LEFT JOIN sub_event_types set ON se.id = set.sub_event_id
-    LEFT JOIN types t ON set.type_id = t.id
-  `;
+  let query = supabase
+    .from('sub_events')
+    .select('*, event:events(id, name), sub_event_categories(category:categories(id, name)), sub_event_types(type:types(id, name))');
   
-  const params = [];
   if (eventId) {
-    query += ` WHERE se.event_id = $1`;
-    params.push(eventId);
+    query = query.eq('event_id', eventId);
   }
   
-  query += ` GROUP BY se.id, e.name ORDER BY se.date_range DESC NULLS LAST`;
+  const { data, error } = await query;
   
-  const result = await db.query(query, params);
-  return result.rows;
+  if (error) throw error;
+  
+  // Transform nested data
+  return data.map(subEvent => ({
+    ...subEvent,
+    event_name: subEvent.event?.name || null,
+    event: undefined,
+    categories: subEvent.sub_event_categories.map(sec => sec.category).filter(Boolean),
+    sub_event_categories: undefined,
+    types: subEvent.sub_event_types.map(set => set.type).filter(Boolean),
+    sub_event_types: undefined
+  }));
 }
 
 // Get single sub-event by ID
 async function getSubEventById(id) {
-  const result = await db.query(
-    `SELECT se.*,
-      e.name as event_name,
-      LOWER(se.date_range) as start_date,
-      UPPER(se.date_range) as end_date,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('id', c.id, 'name', c.name)) 
-        FILTER (WHERE c.id IS NOT NULL), '[]') as categories,
-      COALESCE(json_agg(DISTINCT jsonb_build_object('id', t.id, 'name', t.name)) 
-        FILTER (WHERE t.id IS NOT NULL), '[]') as types
-     FROM sub_events se
-     LEFT JOIN events e ON se.event_id = e.id
-     LEFT JOIN sub_event_categories sec ON se.id = sec.sub_event_id
-     LEFT JOIN categories c ON sec.category_id = c.id
-     LEFT JOIN sub_event_types set ON se.id = set.sub_event_id
-     LEFT JOIN types t ON set.type_id = t.id
-     WHERE se.id = $1
-     GROUP BY se.id, e.name`,
-    [id]
-  );
-  return result.rows[0];
+  const { data, error } = await supabase
+    .from('sub_events')
+    .select('*, event:events(id, name), sub_event_categories(category:categories(id, name)), sub_event_types(type:types(id, name))')
+    .eq('id', id)
+    .single();
+  
+  if (error) throw error;
+  
+  return {
+    ...data,
+    event_name: data.event?.name || null,
+    event: undefined,
+    categories: data.sub_event_categories.map(sec => sec.category).filter(Boolean),
+    sub_event_categories: undefined,
+    types: data.sub_event_types.map(set => set.type).filter(Boolean),
+    sub_event_types: undefined
+  };
 }
 
 // Create sub-event
@@ -67,10 +59,7 @@ async function createSubEvent(data) {
     throw new Error('event_id is required for sub-events');
   }
   
-  const client = await db.pool.connect();
   try {
-    await client.query('BEGIN');
-    
     // Build date range if dates provided
     let dateRange = null;
     if (start_date && end_date) {
@@ -80,50 +69,52 @@ async function createSubEvent(data) {
     }
     
     // Insert sub-event
-    const result = await client.query(
-      `INSERT INTO sub_events 
-       (event_id, description, media, date_range, status, show_event)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-      [
+    const { data: subEvent, error: subEventError } = await supabase
+      .from('sub_events')
+      .insert([{
         event_id,
-        description || '',
-        media ? JSON.stringify(media) : null,
-        dateRange,
-        status || 'draft',
-        show_event !== undefined ? show_event : true
-      ]
-    );
+        description: description || '',
+        media: media || null,
+        date_range: dateRange,
+        status: status || 'draft',
+        show_event: show_event !== undefined ? show_event : true
+      }])
+      .select()
+      .single();
     
-    const subEvent = result.rows[0];
+    if (subEventError) throw subEventError;
     
     // Insert categories
     if (category_ids.length > 0) {
-      for (const categoryId of category_ids) {
-        await client.query(
-          'INSERT INTO sub_event_categories (sub_event_id, category_id) VALUES ($1, $2)',
-          [subEvent.id, categoryId]
-        );
-      }
+      const categoryLinks = category_ids.map(categoryId => ({
+        sub_event_id: subEvent.id,
+        category_id: categoryId
+      }));
+      
+      const { error: catError } = await supabase
+        .from('sub_event_categories')
+        .insert(categoryLinks);
+      
+      if (catError) throw catError;
     }
     
     // Insert types
     if (type_ids.length > 0) {
-      for (const typeId of type_ids) {
-        await client.query(
-          'INSERT INTO sub_event_types (sub_event_id, type_id) VALUES ($1, $2)',
-          [subEvent.id, typeId]
-        );
-      }
+      const typeLinks = type_ids.map(typeId => ({
+        sub_event_id: subEvent.id,
+        type_id: typeId
+      }));
+      
+      const { error: typeError } = await supabase
+        .from('sub_event_types')
+        .insert(typeLinks);
+      
+      if (typeError) throw typeError;
     }
     
-    await client.query('COMMIT');
     return await getSubEventById(subEvent.id);
   } catch (err) {
-    await client.query('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
   }
 }
 
@@ -135,93 +126,90 @@ async function updateSubEvent(id, data) {
     category_ids, type_ids
   } = data;
   
-  const client = await db.pool.connect();
   try {
-    await client.query('BEGIN');
+    // Build update object
+    const updates = {};
+    if (description !== undefined) updates.description = description;
+    if (media !== undefined) updates.media = media;
+    if (status !== undefined) updates.status = status;
+    if (show_event !== undefined) updates.show_event = show_event;
     
     // Build date range if dates provided
-    let dateRange = undefined;
     if (start_date !== undefined || end_date !== undefined) {
       if (start_date && end_date) {
-        dateRange = `[${start_date},${end_date}]`;
+        updates.date_range = `[${start_date},${end_date}]`;
       } else if (start_date) {
-        dateRange = `[${start_date},)`;
+        updates.date_range = `[${start_date},)`;
       } else {
-        dateRange = null;
+        updates.date_range = null;
       }
     }
     
     // Update sub-event
-    await client.query(
-      `UPDATE sub_events 
-       SET description = COALESCE($1, description),
-           media = COALESCE($2, media),
-           date_range = COALESCE($3, date_range),
-           status = COALESCE($4, status),
-           show_event = COALESCE($5, show_event),
-           updated_at = NOW()
-       WHERE id = $6`,
-      [
-        description,
-        media ? JSON.stringify(media) : undefined,
-        dateRange,
-        status,
-        show_event,
-        id
-      ]
-    );
+    const { error: updateError } = await supabase
+      .from('sub_events')
+      .update(updates)
+      .eq('id', id);
+    
+    if (updateError) throw updateError;
     
     // Update categories if provided
     if (category_ids !== undefined) {
-      await client.query('DELETE FROM sub_event_categories WHERE sub_event_id = $1', [id]);
+      await supabase.from('sub_event_categories').delete().eq('sub_event_id', id);
+      
       if (category_ids.length > 0) {
-        for (const categoryId of category_ids) {
-          await client.query(
-            'INSERT INTO sub_event_categories (sub_event_id, category_id) VALUES ($1, $2)',
-            [id, categoryId]
-          );
-        }
+        const categoryLinks = category_ids.map(categoryId => ({
+          sub_event_id: id,
+          category_id: categoryId
+        }));
+        
+        const { error: catError } = await supabase
+          .from('sub_event_categories')
+          .insert(categoryLinks);
+        
+        if (catError) throw catError;
       }
     }
     
     // Update types if provided
     if (type_ids !== undefined) {
-      await client.query('DELETE FROM sub_event_types WHERE sub_event_id = $1', [id]);
+      await supabase.from('sub_event_types').delete().eq('sub_event_id', id);
+      
       if (type_ids.length > 0) {
-        for (const typeId of type_ids) {
-          await client.query(
-            'INSERT INTO sub_event_types (sub_event_id, type_id) VALUES ($1, $2)',
-            [id, typeId]
-          );
-        }
+        const typeLinks = type_ids.map(typeId => ({
+          sub_event_id: id,
+          type_id: typeId
+        }));
+        
+        const { error: typeError } = await supabase
+          .from('sub_event_types')
+          .insert(typeLinks);
+        
+        if (typeError) throw typeError;
       }
     }
     
-    await client.query('COMMIT');
     return await getSubEventById(id);
   } catch (err) {
-    await client.query('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
   }
 }
 
 // Delete sub-event
 async function deleteSubEvent(id) {
-  const client = await db.pool.connect();
   try {
-    await client.query('BEGIN');
-    await client.query('DELETE FROM sub_event_categories WHERE sub_event_id = $1', [id]);
-    await client.query('DELETE FROM sub_event_types WHERE sub_event_id = $1', [id]);
-    await client.query('DELETE FROM sub_events WHERE id = $1', [id]);
-    await client.query('COMMIT');
+    await supabase.from('sub_event_categories').delete().eq('sub_event_id', id);
+    await supabase.from('sub_event_types').delete().eq('sub_event_id', id);
+    
+    const { error } = await supabase
+      .from('sub_events')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
     return true;
   } catch (err) {
-    await client.query('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
   }
 }
 

@@ -1,30 +1,37 @@
 const bcrypt = require('bcrypt');
-const { pool } = require('../index');
+const { supabase } = require('../index');
 
 const SALT_ROUNDS = 10;
 
 // Register a new user
 async function register(username, email, password) {
   try {
+    console.log('Registering user:', { username, email });
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     
-    const result = await pool.query(
-      `INSERT INTO users (username, email, password_hash)
-       VALUES ($1, $2, $3)
-       RETURNING id, username, email, role, created_at`,
-      [username, email, passwordHash]
-    );
+    const { data, error } = await supabase
+      .from('users')
+      .insert([{ username, email, password_hash: passwordHash }])
+      .select('id, username, email, role, created_at')
+      .single();
     
-    return result.rows[0];
-  } catch (error) {
-    if (error.code === '23505') { // Unique constraint violation
-      if (error.constraint === 'users_username_key') {
-        throw new Error('Username already exists');
+    if (error) {
+      console.error('Supabase register error:', error);
+      if (error.code === '23505') { // Unique constraint violation
+        if (error.message.includes('username')) {
+          throw new Error('Username already exists');
+        }
+        if (error.message.includes('email')) {
+          throw new Error('Email already exists');
+        }
       }
-      if (error.constraint === 'users_email_key') {
-        throw new Error('Email already exists');
-      }
+      throw error;
     }
+    
+    console.log('User registered successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Register error:', error);
     throw error;
   }
 }
@@ -32,58 +39,66 @@ async function register(username, email, password) {
 // Login user
 async function login(usernameOrEmail, password) {
   try {
-    const result = await pool.query(
-      `SELECT id, username, email, password_hash, role, created_at
-       FROM users
-       WHERE username = $1 OR email = $1`,
-      [usernameOrEmail]
-    );
+    // Query for user by username OR email
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, username, email, password_hash, role, created_at')
+      .or(`username.eq.${usernameOrEmail},email.eq.${usernameOrEmail}`)
+      .maybeSingle();
     
-    if (result.rows.length === 0) {
+    if (error) {
+      console.error('Supabase login error:', error);
       throw new Error('Invalid credentials');
     }
     
-    const user = result.rows[0];
-    const isValid = await bcrypt.compare(password, user.password_hash);
+    if (!data) {
+      throw new Error('Invalid credentials');
+    }
+    
+    const isValid = await bcrypt.compare(password, data.password_hash);
     
     if (!isValid) {
       throw new Error('Invalid credentials');
     }
     
     // Don't return password hash
-    delete user.password_hash;
+    const { password_hash, ...user } = data;
     return user;
   } catch (error) {
-    throw error;
+    if (error.message === 'Invalid credentials') {
+      throw error;
+    }
+    console.error('Login error:', error);
+    throw new Error('Invalid credentials');
   }
 }
 
 // Get user by ID
 async function getUserById(id) {
   try {
-    const result = await pool.query(
-      `SELECT id, username, email, role, created_at
-       FROM users
-       WHERE id = $1`,
-      [id]
-    );
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, username, email, role, created_at')
+      .eq('id', id)
+      .single();
     
-    return result.rows[0] || null;
+    if (error) throw error;
+    return data;
   } catch (error) {
-    throw error;
+    return null;
   }
 }
 
 // Get all users
 async function getAllUsers() {
   try {
-    const result = await pool.query(
-      `SELECT id, username, email, role, created_at
-       FROM users
-       ORDER BY created_at DESC`
-    );
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, username, email, role, created_at')
+      .order('created_at', { ascending: false });
     
-    return result.rows;
+    if (error) throw error;
+    return data || [];
   } catch (error) {
     throw error;
   }

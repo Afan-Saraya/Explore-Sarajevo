@@ -1,68 +1,95 @@
-const db = require('../index');
+const { supabase } = require('../index');
 
 // Get all types
 async function getAllTypes() {
-  const result = await db.query(
-    'SELECT * FROM types ORDER BY name ASC'
-  );
-  return result.rows;
+  const { data, error } = await supabase
+    .from('types')
+    .select('*')
+    .order('name', { ascending: true });
+  
+  if (error) throw error;
+  return data;
 }
 
 // Get single type by ID
 async function getTypeById(id) {
-  const result = await db.query(
-    'SELECT * FROM types WHERE id = $1',
-    [id]
-  );
-  return result.rows[0];
+  const { data, error } = await supabase
+    .from('types')
+    .select('*')
+    .eq('id', id)
+    .single();
+  
+  if (error) throw error;
+  return data;
 }
 
 // Create type
 async function createType(data) {
   const { name, slug, description, image } = data;
-  const result = await db.query(
-    `INSERT INTO types (name, slug, description, image)
-     VALUES ($1, $2, $3, $4)
-     RETURNING *`,
-    [name, slug || generateSlug(name), description || '', image || null]
-  );
-  return result.rows[0];
+  
+  const { data: newType, error } = await supabase
+    .from('types')
+    .insert([{
+      name,
+      slug: slug || generateSlug(name),
+      description: description || '',
+      image: image || null
+    }])
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return newType;
 }
 
 // Update type
 async function updateType(id, data) {
   const { name, slug, description, image } = data;
-  const result = await db.query(
-    `UPDATE types 
-     SET name = COALESCE($1, name),
-         slug = COALESCE($2, slug),
-         description = COALESCE($3, description),
-         image = COALESCE($4, image),
-         updated_at = NOW()
-     WHERE id = $5
-     RETURNING *`,
-    [name, slug, description, image, id]
-  );
-  return result.rows[0];
+  
+  const updates = {};
+  if (name !== undefined) updates.name = name;
+  if (slug !== undefined) updates.slug = slug;
+  if (description !== undefined) updates.description = description;
+  if (image !== undefined) updates.image = image;
+  
+  const { data: updatedType, error } = await supabase
+    .from('types')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return updatedType;
 }
 
 // Delete type
 async function deleteType(id) {
-  await db.query('DELETE FROM types WHERE id = $1', [id]);
+  const { error } = await supabase
+    .from('types')
+    .delete()
+    .eq('id', id);
+  
+  if (error) throw error;
   return true;
 }
 
 // Get usage count
 async function getTypeUsageCount(id) {
-  const result = await db.query(
-    `SELECT 
-      (SELECT COUNT(*) FROM business_types WHERE type_id = $1) +
-      (SELECT COUNT(*) FROM attraction_types WHERE type_id = $1) +
-      (SELECT COUNT(*) FROM event_types WHERE type_id = $1) +
-      (SELECT COUNT(*) FROM sub_event_types WHERE type_id = $1) AS usage_count`,
-    [id]
-  );
-  return result.rows[0].usage_count;
+  const [businessTypes, attractionTypes, eventTypes, subEventTypes] = await Promise.all([
+    supabase.from('business_types').select('*', { count: 'exact', head: true }).eq('type_id', id),
+    supabase.from('attraction_types').select('*', { count: 'exact', head: true }).eq('type_id', id),
+    supabase.from('event_types').select('*', { count: 'exact', head: true }).eq('type_id', id),
+    supabase.from('sub_event_types').select('*', { count: 'exact', head: true }).eq('type_id', id)
+  ]);
+  
+  const usageCount = 
+    (businessTypes.count || 0) +
+    (attractionTypes.count || 0) +
+    (eventTypes.count || 0) +
+    (subEventTypes.count || 0);
+  
+  return usageCount;
 }
 
 // Helper: generate slug from name

@@ -4,6 +4,27 @@
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS brand_id INTEGER;
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
+-- Ensure FK between businesses.brand_id and brands.id exists (required for PostgREST relationships)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint c
+        JOIN pg_class t ON c.conrelid = t.oid
+        WHERE t.relname = 'businesses'
+          AND c.conname = 'businesses_brand_id_fkey'
+    ) THEN
+        -- Only add the FK if the referenced table/column exists
+        IF EXISTS (
+            SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'brands'
+        ) THEN
+            ALTER TABLE public.businesses
+            ADD CONSTRAINT businesses_brand_id_fkey
+            FOREIGN KEY (brand_id) REFERENCES public.brands(id) ON DELETE SET NULL;
+        END IF;
+    END IF;
+END $$;
+
 -- Rename featured to featured_business in businesses
 DO $$ 
 BEGIN

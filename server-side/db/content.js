@@ -1,84 +1,105 @@
-const db = require('./index');
+const { supabase } = require('./index');
 
 function generateId() {
   return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 9);
 }
 
 async function getAllContent(type) {
+  let query = supabase
+    .from('content')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
   if (type) {
-    const res = await db.query('SELECT * FROM content WHERE content_type = $1 ORDER BY created_at DESC', [type]);
-    return res.rows;
+    query = query.eq('content_type', type);
   }
-  const res = await db.query('SELECT * FROM content ORDER BY created_at DESC');
-  return res.rows;
+  
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
 }
 
 async function getContentById(id) {
-  const res = await db.query('SELECT * FROM content WHERE id = $1', [id]);
-  return res.rows[0];
+  const { data, error } = await supabase
+    .from('content')
+    .select('*')
+    .eq('id', id)
+    .single();
+  
+  if (error) throw error;
+  return data;
 }
 
 async function createContent(item) {
   const id = item.id || generateId();
-  const sql = `INSERT INTO content (
-    id, content_type, name, slug, description, address, location, category_id,
-    parent_category_id, brand_id, phone, website, rating, working_hours,
-    featured_business, featured_location, images, data
-  ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`;
-  const params = [
-    id,
-    item.contentType,
-    item.name,
-    item.slug,
-    item.description || null,
-    item.address || null,
-    item.location || null,
-    item.categoryId || null,
-    item.parentCategoryId || null,
-    item.brandId || null,
-    item.phone || null,
-    item.website || null,
-    item.rating !== undefined ? item.rating : null,
-    item.workingHours || null,
-    item.featuredBusiness === true || item.featuredBusiness === 'true',
-    item.featuredLocation === true || item.featuredLocation === 'true',
-    JSON.stringify(item.images || []),
-    JSON.stringify(item.data || {})
-  ];
-  const res = await db.query(sql, params);
-  return res.rows[0];
+  
+  const { data, error } = await supabase
+    .from('content')
+    .insert([{
+      id,
+      content_type: item.contentType,
+      name: item.name,
+      slug: item.slug,
+      description: item.description || null,
+      address: item.address || null,
+      location: item.location || null,
+      category_id: item.categoryId || null,
+      parent_category_id: item.parentCategoryId || null,
+      brand_id: item.brandId || null,
+      phone: item.phone || null,
+      website: item.website || null,
+      rating: item.rating !== undefined ? item.rating : null,
+      working_hours: item.workingHours || null,
+      featured_business: item.featuredBusiness === true || item.featuredBusiness === 'true',
+      featured_location: item.featuredLocation === true || item.featuredLocation === 'true',
+      images: item.images || [],
+      data: item.data || {}
+    }])
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
 }
 
 async function updateContent(id, fields) {
-  // Build dynamic SET clause
-  const sets = [];
-  const params = [];
-  let idx = 1;
+  // Build update object with mapped fields
+  const updates = {};
+  
   for (const key of Object.keys(fields)) {
     if (key === 'images' || key === 'data') {
-      sets.push(`${key} = $${idx}`);
-      params.push(JSON.stringify(fields[key]));
-    } else if (key === 'featuredBusiness' || key === 'featuredLocation') {
-      const col = key === 'featuredBusiness' ? 'featured_business' : 'featured_location';
-      sets.push(`${col} = $${idx}`);
-      params.push(fields[key] === true || fields[key] === 'true');
+      updates[key] = fields[key];
+    } else if (key === 'featuredBusiness') {
+      updates.featured_business = fields[key] === true || fields[key] === 'true';
+    } else if (key === 'featuredLocation') {
+      updates.featured_location = fields[key] === true || fields[key] === 'true';
     } else {
       // map camelCase to snake_case
       const col = key.replace(/[A-Z]/g, m => '_' + m.toLowerCase());
-      sets.push(`${col} = $${idx}`);
-      params.push(fields[key]);
+      updates[col] = fields[key];
     }
-    idx++;
   }
-  if (sets.length === 0) return getContentById(id);
-  const sql = `UPDATE content SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`;
-  params.push(id);
-  const res = await db.query(sql, params);
-  return res.rows[0];
+  
+  if (Object.keys(updates).length === 0) return getContentById(id);
+  
+  const { data, error } = await supabase
+    .from('content')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
 }
 
 async function deleteContent(id) {
-  await db.query('DELETE FROM content WHERE id = $1', [id]);
+  const { error } = await supabase
+    .from('content')
+    .delete()
+    .eq('id', id);
+  
+  if (error) throw error;
   return true;
 }
 
