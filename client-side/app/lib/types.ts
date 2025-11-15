@@ -52,3 +52,31 @@ export interface ApiResponse {
   categories: Category[];
   attractiveLocations: AttractiveLocation[];
 }
+
+// Hotspot Blocks & Sets
+export interface HotspotBlock {
+  id: string; // unique per block
+  image?: File | string; // File (new upload) or existing image URL
+  title: string;
+  description: string;
+  buttonText: string;
+  buttonLink: string;
+}
+
+export interface HotspotBlockSetStyles {
+  blockBackground: string; // rgba(...)
+  titleColor: string; // rgba(...)
+  descriptionColor: string; // rgba(...)
+  buttonBackground: string; // rgba(...)
+  buttonTextColor: string; // rgba(...)
+}
+
+export interface HotspotBlockSet {
+  id: string; // unique per set
+  blocks: HotspotBlock[];
+  styles: HotspotBlockSetStyles;
+}
+
+export interface HotspotPayload {
+  sets: HotspotBlockSet[];
+}
