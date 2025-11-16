@@ -1,0 +1,43 @@
+import { Routes, Route, Navigate } from 'react-router-dom';
+import LoginPage from '@/pages/auth/LoginPage';
+import DashboardPage from '@/pages/dashboard/DashboardPage';
+import CategoriesPage from '@/pages/categories/CategoriesPage';
+import TypesPage from '@/pages/types/TypesPage';
+import BrandsPage from '@/pages/brands/BrandsPage';
+import BusinessesPage from '@/pages/businesses/BusinessesPage';
+import AttractionsPage from '@/pages/attractions/AttractionsPage';
+import EventsPage from '@/pages/events/EventsPage';
+import UploadsPage from '@/pages/uploads/UploadsPage';
+import ProtectedRoute from './ProtectedRoute';
+import DashboardLayout from '@/layouts/DashboardLayout';
+
+export default function AppRoutes() {
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* Protected routes */}
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <Routes>
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/categories" element={<CategoriesPage />} />
+                <Route path="/types" element={<TypesPage />} />
+                <Route path="/brands" element={<BrandsPage />} />
+                <Route path="/businesses" element={<BusinessesPage />} />
+                <Route path="/attractions" element={<AttractionsPage />} />
+                <Route path="/events" element={<EventsPage />} />
+                <Route path="/uploads" element={<UploadsPage />} />
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  );
+}
