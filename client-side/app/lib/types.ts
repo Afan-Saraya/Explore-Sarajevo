@@ -7,6 +7,8 @@ export interface Subcategory {
 }
 
 export interface Category {
+  text: ReactNode;
+  image: string;
   icon: any;
   id: string;
   name: string;
@@ -17,6 +19,8 @@ export interface Category {
 }
 
 export interface Business {
+  featured: any;
+  text: ReactNode;
   subcategory?: Subcategory | null;
   id: string | number;
   name: string;

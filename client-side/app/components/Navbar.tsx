@@ -21,14 +21,14 @@ export default function Navbar() {
 
   // Odredi klasu pozadine
   const backgroundClass = (() => {
-    if (pathname === "/page") {
-      // samo page.tsx → potpuno transparentno
-      return isAtTop ? "bg-transparent" : "bg-black/100 shadow-md";
-    } else {
-      // sve druge stranice → vertikalni gradient crno → transparent
+    if (pathname === "/") {
+      // root → gradient dok je na vrhu, crna kad scrolla
       return isAtTop
         ? "bg-gradient-to-b from-black/80 to-transparent"
-        : "bg-black/90 shadow-md";
+        : "bg-black shadow-md";
+    } else {
+      // sve druge stranice → uvijek crna
+      return "bg-black shadow-md";
     }
   })();
 

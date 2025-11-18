@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { Business, Category } from "../lib/types";
+import { Business, Category } from "../../lib/types";
 import { MapPin } from "lucide-react";
 import ReactCardFlip from "react-card-flip";
 
@@ -12,7 +12,7 @@ interface Props {
   categories: Category[];
 }
 
-export default function CategorySectionByCategory({ businesses, categoryId, categories }: Props) {
+export default function CatgorySection({ businesses, categoryId, categories }: Props) {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [flippedIndexes, setFlippedIndexes] = useState<number[]>([]);
@@ -22,13 +22,10 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
     return () => clearInterval(interval);
   }, []);
 
-  // 🔹 Filtriraj po kategoriji i featured
-  const categoryDescription = categories.filter(
-    (b) => b.id === categoryId
-  )
+  const currentCategory = categories.find((cat) => cat.slug === categoryId);
 
-  const filteredBusinesses = businesses.filter(
-    (b) => b.categoryId === categoryId
+  const filteredBusinesses = businesses.filter((b) => 
+    b.categories?.some((cat) => cat.id === currentCategory?.id)
   );
 
   // 🔄 Flip interval
@@ -52,44 +49,40 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
 
   function isOpenNow(workingHours?: string) {
     if (!workingHours) return false;
-    const currentTime = new Date();
-    const nowH = currentTime.getHours();
-    const nowM = currentTime.getMinutes();
+    const now = new Date();
+    const nowTotal = now.getHours() * 60 + now.getMinutes();
     const [start, end] = workingHours.split("-");
     if (!start || !end) return false;
     const [startH, startM] = start.split(":").map(Number);
     const [endH, endM] = end.split(":").map(Number);
     const startTotal = startH * 60 + startM;
     const endTotal = endH * 60 + endM;
-    const nowTotal = nowH * 60 + nowM;
     return nowTotal >= startTotal && nowTotal <= endTotal;
   }
 
-  // 🔹 Generiši 4 biznisa po flipu, zadnji „page“ može imati < 4
+  // 🔹 Generiši 4 biznisa po flipu
   const visibleBusinesses = [];
   for (let i = 0; i < 4; i++) {
     const idx = (visibleIndex + i) % filteredBusinesses.length;
     if (filteredBusinesses[idx]) visibleBusinesses.push(filteredBusinesses[idx]);
   }
 
+  // 🔹 Ukloni duplicate po id da se key ne ponavlja
+  const uniqueVisibleBusinesses = visibleBusinesses.filter(
+    (b, index, self) => index === self.findIndex((t) => t.id === b.id)
+  );
+
   return (
     <div className="mt-0 text-black md:text-start text-center">
-      <div className="md:flex items-center justify-between p-5 pb-1">
-        <div>
-          <h5 className="p-5 pb-1 font-bold text-[5vh]">{categoryId}</h5>
-          {categoryDescription && categoryDescription[0] && (
-            <p className="pb-5 text-[2vh]">{categoryDescription[0].description}</p>
-          )}
-        </div>
-        {/* Strelice za flip */}
-        <div className="flex justify-center md:justify-end space-x-3 pb-5 md:pb-0">
+      <div className="md:flex items-center justify-between p-5 pb-1 flex">
+        <div className="flex md:justify-end space-x-3 pb-5 md:pb-0" style={{ marginLeft: 'auto' }}>
           <button
             onClick={() =>
               setVisibleIndex((prev) =>
                 (prev - 4 + filteredBusinesses.length) % filteredBusinesses.length
               )
             }
-            className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-800 transition-all duration-200"
+            className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-800 transition-all duration-200"
           >
             ◀
           </button>
@@ -97,13 +90,13 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
             onClick={() =>
               setVisibleIndex((prev) => (prev + 4) % filteredBusinesses.length)
             }
-            className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-800 transition-all duration-200"
+            className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-800 transition-all duration-200"
           >
             ▶
           </button>
         </div>
       </div>
-      {/* Grid kartica */}
+
       <div
         className="
         grid 
@@ -114,7 +107,7 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
         scrollbar-hide
       "
       >
-        {visibleBusinesses.map((b, index) => {
+        {uniqueVisibleBusinesses.map((b, index) => {
           const isFlipped = flippedIndexes.includes((visibleIndex + index) % filteredBusinesses.length);
           const pairIndex = Math.floor(index / 2);
           const isEvenRow = pairIndex % 2 === 0;
@@ -122,7 +115,6 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
             (isEvenRow && index % 2 === 0) || (!isEvenRow && index % 2 === 1);
           const isWideMobile = index % 3 === 0;
 
-          // BACK kartica (uzeti sljedeći po redu)
           const backIndex = (visibleIndex + index + 4) % filteredBusinesses.length;
           const backBiz = filteredBusinesses[backIndex];
 
@@ -137,7 +129,7 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
             >
               <ReactCardFlip isFlipped={isFlipped} flipDirection="horizontal">
                 {/* FRONT */}
-                <div className="relative w-full h-[35vh] md:h-[45vh] rounded-2xl">
+                <div key={`front-${b.id}`} className="relative w-full h-[35vh] md:h-[45vh] rounded-2xl">
                   <Image
                     src={(b.images && Array.isArray(b.images) && b.images[0]) || "https://dummyimage.com/720x540"}
                     alt={b.name}
@@ -153,10 +145,7 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
                         <span>{b.address}</span>
                       </div>
                       <span
-                        className={`text-[1.3vh] font-semibold ${isOpenNow(b.workingHours)
-                          ? "text-green-400"
-                          : "text-red-500"
-                          }`}
+                        className={`text-[1.3vh] font-semibold ${isOpenNow(b.workingHours) ? "text-green-400" : "text-red-500"}`}
                       >
                         {isOpenNow(b.workingHours) ? "Open Now" : "Closed Now"}
                       </span>
@@ -165,8 +154,8 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
                 </div>
 
                 {/* BACK */}
-                {backBiz && (
-                  <div className="relative w-full h-[35vh] md:h-[45vh] rounded-2xl">
+                {backBiz && backBiz.id !== b.id && (
+                  <div key={`back-${backBiz.id}`} className="relative w-full h-[35vh] md:h-[45vh] rounded-2xl">
                     <Image
                       src={(backBiz.images && Array.isArray(backBiz.images) && backBiz.images[0]) || "https://dummyimage.com/720x540"}
                       alt={backBiz.name}
@@ -182,14 +171,9 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
                           <span>{backBiz.address}</span>
                         </div>
                         <span
-                          className={`text-[1.3vh] font-semibold ${isOpenNow(backBiz.workingHours)
-                            ? "text-green-400"
-                            : "text-red-500"
-                            }`}
+                          className={`text-[1.3vh] font-semibold ${isOpenNow(backBiz.workingHours) ? "text-green-400" : "text-red-500"}`}
                         >
-                          {isOpenNow(backBiz.workingHours)
-                            ? "Open Now"
-                            : "Closed Now"}
+                          {isOpenNow(backBiz.workingHours) ? "Open Now" : "Closed Now"}
                         </span>
                       </div>
                     </div>

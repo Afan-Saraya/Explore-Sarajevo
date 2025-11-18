@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { MapPin } from "lucide-react";
-import { Business } from "../lib/types";
+import { Business } from "../../lib/types";
 
 export default function MapBusinessCard({ business }: { business: Business }) {
   const isOpenNow = (workingHours?: string) => {

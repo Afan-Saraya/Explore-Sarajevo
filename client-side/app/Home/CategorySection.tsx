@@ -78,7 +78,7 @@ export default function CategorySection({ categories }: Props) {
         return (
           <Link
             key={`category-${cat.id}-${index}`}
-            href={`/${cat.slug}`} // ✅ vodi na /[idCategory]/page.tsx
+            href={`/category/${cat.slug}`} // ✅ vodi na /[idCategory]/page.tsx
             className={`
               relative overflow-hidden rounded-2xl border border-gray-200
               hover:scale-[1.03] hover:shadow-2xl transition-all duration-300 ease-out

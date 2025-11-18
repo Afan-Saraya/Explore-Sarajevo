@@ -2,16 +2,18 @@
 
 import { Map, Marker } from "pigeon-maps";
 import { useState, useEffect, useMemo } from "react";
-import { Business } from "../lib/types";
+import { Business, Category } from "../../lib/types";
 import MapBusinessCard from "./BusinessCard";
 import ReactCardFlip from "react-card-flip";
 
 export default function MapHero({
   businesses,
   categoryId,
+  categories,
 }: {
   businesses: Business[];
   categoryId: string;
+  categories: Category[];
 }) {
   const [zoom, setZoom] = useState(13);
   const [center, setCenter] = useState<[number, number]>([43.8563, 18.4131]);
@@ -29,8 +31,17 @@ export default function MapHero({
 
   const filteredBusinesses = useMemo(() => {
     if (!categoryId) return businesses;
-    return businesses.filter((b) => b.categoryId === categoryId);
-  }, [businesses, categoryId]);
+    // Find the category by slug
+    const currentCategory = categories.find((cat) => cat.slug === categoryId);
+    if (!currentCategory) return [];
+    // Filter businesses that have this category in their categories array
+    return businesses.filter((b) => {
+      if (b.categories && Array.isArray(b.categories)) {
+        return b.categories.some((cat) => cat.id === currentCategory.id);
+      }
+      return false;
+    });
+  }, [businesses, categoryId, categories]);
 
   useEffect(() => {
     if (filteredBusinesses.length === 0) return;
@@ -75,7 +86,7 @@ export default function MapHero({
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full mt-10">
       {/* 🗺️ Mapa */}
       <section className="relative w-full h-[55vh] overflow-hidden rounded-none">
         <Map center={center} zoom={zoom} height={mapHeight}>
