@@ -17,22 +17,28 @@ export interface Category {
 }
 
 export interface Business {
-  subcategory: Subcategory | null; // bolje tipizirano
-  id: string;
+  subcategory?: Subcategory | null;
+  id: string | number;
   name: string;
   slug: string;
-  categoryId: string; // ID podkategorije
-  parentCategoryId: string; // ID glavne kategorije
-  brandId: string | null;
-  description: string;
-  address: string;
-  location: string; // "lat,long"
-  rating: number;
-  workingHours: string;
-  images: string[];
+  categoryId?: string; // Category name or ID
+  parentCategoryId?: string;
+  brandId?: string | number | null;
+  brandName?: string; // From API
+  brandSlug?: string; // From API
+  description?: string;
+  address?: string;
+  location?: string; // "lat,long"
+  rating?: number;
+  workingHours?: string;
+  working_hours?: string; // API uses snake_case
+  images?: string[] | null;
   phone?: string;
   website?: string;
   featuredBusiness?: boolean;
+  featured_business?: boolean; // API uses snake_case
+  categories?: Category[];
+  types?: any[];
 }
 
 export interface AttractiveLocation {
@@ -45,6 +51,7 @@ export interface AttractiveLocation {
   location: string; // "lat,long"
   images: string[];
   featuredLocation?: boolean;
+  categories?: Category[];
 }
 
 export interface ApiResponse {

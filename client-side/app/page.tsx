@@ -1,35 +1,23 @@
 import Hero from "./Home/Hero";
 import CategorySection from "./Home/CategorySection";
 import FeaturedSection from "./Home/FeaturedSection";
-import { AttractiveLocation, Business, Category } from "./lib/types";
 import OurMission from "./Home/OurMission";
 import DistrictSection from "./Home/DistricSection";
 import OurPlace from "./Home/OurPlace";
 import AttractiveLocations from "./Home/AttractiveLocations";
 import MapSectionClient from "./Home/MapSectionClient";
-
-async function getData(): Promise<{ businesses: Business[]; categories: Category[]; attractive_locations: AttractiveLocation[] }> {
-  const res = await fetch("https://mocki.io/v1/e84cbca4-1ede-47e6-8954-799d2371d6b1", {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error("Greška pri dohvaćanju podataka");
-  }
-
-  const data = await res.json();
-  return {
-    businesses: data.businesses,
-    categories: data.categories,
-    attractive_locations: data.attractive_locations
-  };
-}
+import { getBusinesses, getCategories, getAttractions } from "./lib/api";
 
 export default async function HomePage() {
-  const { businesses, categories, attractive_locations } = await getData();
+  // Fetch data from Express backend API
+  const [businesses, categories, attractive_locations] = await Promise.all([
+    getBusinesses(),
+    getCategories(),
+    getAttractions()
+  ]);
 
   // prikazuj samo featured biznise
-  const featured = businesses.filter((b) => b.featuredBusiness);
+  const featured = businesses.filter((b: { featuredBusiness: any; }) => b.featuredBusiness);
 
   return (
     <div className="bg-white">
@@ -41,7 +29,7 @@ export default async function HomePage() {
       <OurMission />
       <div style={{ backgroundImage: 'url("/assets/visitBjelasnica.jpg")' }}>
         <section className="max-w-7xl mx-auto px-6 md:px-10 py-14 overflow-hidden">
-          <DistrictSection businesses={businesses} brandName="visit-bjelanica" />
+          <DistrictSection businesses={businesses} brandName="visit-bjelasnica" />
         </section>
       </div>
       <OurPlace />

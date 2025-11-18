@@ -10,7 +10,7 @@ export default function MapSectionClient({ businesses }: { businesses: Business[
   const [zoom, setZoom] = useState(13);
   const [center, setCenter] = useState<[number, number]>([43.8563, 18.4131]);
 
-  const uniqueCategories = Array.from(new Set(businesses.map((b) => b.categoryId)));
+  const uniqueCategories = Array.from(new Set(businesses.map((b) => b.categoryId).filter((cat): cat is string => Boolean(cat))));
 
   const filteredBusinesses = useMemo(() => {
     return activeCategory
@@ -26,8 +26,8 @@ export default function MapSectionClient({ businesses }: { businesses: Business[
       return;
     }
 
-    const lats = filteredBusinesses.map((b) => Number(b.location.split(",")[0]));
-    const lngs = filteredBusinesses.map((b) => Number(b.location.split(",")[1]));
+    const lats = filteredBusinesses.filter(b => b.location).map((b) => Number(b.location!.split(",")[0]));
+    const lngs = filteredBusinesses.filter(b => b.location).map((b) => Number(b.location!.split(",")[1]));
 
     const minLat = Math.min(...lats);
     const maxLat = Math.max(...lats);
@@ -56,6 +56,7 @@ export default function MapSectionClient({ businesses }: { businesses: Business[
 
         <div className="flex flex-wrap gap-2 justify-center mb-6">
           <button
+            key="map-all"
             onClick={() => setActiveCategory(null)}
             className={`px-3 py-1.5 text-sm rounded-full border transition ${
               !activeCategory
@@ -65,9 +66,9 @@ export default function MapSectionClient({ businesses }: { businesses: Business[
           >
             Sve
           </button>
-          {uniqueCategories.map((cat) => (
+          {uniqueCategories.map((cat, index) => (
             <button
-              key={cat}
+              key={`map-cat-${cat}-${index}`}
               onClick={() => setActiveCategory(cat)}
               className={`px-3 py-1.5 text-sm rounded-full border transition ${
                 activeCategory === cat
@@ -84,8 +85,8 @@ export default function MapSectionClient({ businesses }: { businesses: Business[
       {/* Mapa */}
       <section className="relative w-full h-[60vh] rounded-2xl overflow-hidden">
         <Map height={600} center={center} zoom={zoom}>
-          {filteredBusinesses.map((b) => {
-            const [lat, lng] = b.location.split(",").map(Number);
+          {filteredBusinesses.filter(b => b.location).map((b) => {
+            const [lat, lng] = b.location!.split(",").map(Number);
             return (
               <Marker
                 key={b.id}
@@ -96,7 +97,7 @@ export default function MapSectionClient({ businesses }: { businesses: Business[
             );
           })}
 
-          {selectedBusiness && (
+          {selectedBusiness && selectedBusiness.location && (
             <Overlay
               anchor={selectedBusiness.location.split(",").map(Number) as [number, number]}
               offset={[120, 80]}
@@ -111,7 +112,7 @@ export default function MapSectionClient({ businesses }: { businesses: Business[
                 </button>
 
                 {/* Slika */}
-                {selectedBusiness.images?.[0] && (
+                {selectedBusiness.images && Array.isArray(selectedBusiness.images) && selectedBusiness.images[0] && (
                   <img
                     src={selectedBusiness.images[0]}
                     alt={selectedBusiness.name}

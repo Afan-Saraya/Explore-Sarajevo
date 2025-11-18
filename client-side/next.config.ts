@@ -2,7 +2,20 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ['dummyimage.com'], // ovdje dodaj sve domene koje koristiš za slike
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'dummyimage.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'supa.halvooo.com',
+      },
+    ],
   },
 
 };

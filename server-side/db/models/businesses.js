@@ -6,10 +6,11 @@ async function getAllBusinesses(filters = {}) {
     .from('businesses')
     .select(`
       *,
-      brand:brands(id, name),
+      brand:brands(id, name, slug),
       business_categories(category:categories(id, name)),
       business_types(type:types(id, name))
     `)
+    .order('display_order', { ascending: true })
     .order('name', { ascending: true });
   
   if (filters.brand_id) {
@@ -32,8 +33,11 @@ async function getAllBusinesses(filters = {}) {
   return (data || []).map(business => ({
     ...business,
     brand_name: business.brand?.name || null,
+    brand_slug: business.brand?.slug || null,
     categories: business.business_categories?.map(bc => bc.category).filter(Boolean) || [],
-    types: business.business_types?.map(bt => bt.type).filter(Boolean) || []
+    types: business.business_types?.map(bt => bt.type).filter(Boolean) || [],
+    category_ids: business.business_categories?.map(bc => bc.category?.id).filter(Boolean) || [],
+    type_ids: business.business_types?.map(bt => bt.type?.id).filter(Boolean) || []
   }));
 }
 
@@ -43,7 +47,7 @@ async function getBusinessById(id) {
     .from('businesses')
     .select(`
       *,
-      brand:brands(id, name),
+      brand:brands(id, name, slug),
       business_categories(category:categories(id, name)),
       business_types(type:types(id, name))
     `)
@@ -56,8 +60,11 @@ async function getBusinessById(id) {
   return {
     ...data,
     brand_name: data.brand?.name || null,
+    brand_slug: data.brand?.slug || null,
     categories: data.business_categories?.map(bc => bc.category).filter(Boolean) || [],
-    types: data.business_types?.map(bt => bt.type).filter(Boolean) || []
+    types: data.business_types?.map(bt => bt.type).filter(Boolean) || [],
+    category_ids: data.business_categories?.map(bc => bc.category?.id).filter(Boolean) || [],
+    type_ids: data.business_types?.map(bt => bt.type?.id).filter(Boolean) || []
   };
 }
 
@@ -220,6 +227,29 @@ async function deleteBusiness(id) {
   }
 }
 
+// Reorder businesses
+async function reorderBusinesses(orderedIds) {
+  // Update display_order for each business sequentially to avoid conflicts
+  try {
+    for (let i = 0; i < orderedIds.length; i++) {
+      const { error } = await supabase
+        .from('businesses')
+        .update({ display_order: i })
+        .eq('id', orderedIds[i]);
+      
+      if (error) {
+        console.error('Error updating business order:', error);
+        throw error;
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Reorder businesses error:', error);
+    throw error;
+  }
+}
+
 // Helper: generate slug from name
 function generateSlug(name) {
   return name
@@ -234,5 +264,6 @@ module.exports = {
   getBusinessById,
   createBusiness,
   updateBusiness,
-  deleteBusiness
+  deleteBusiness,
+  reorderBusinesses
 };

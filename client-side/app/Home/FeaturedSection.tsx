@@ -25,7 +25,7 @@ export default function CategorySection({ businesses }: Props) {
   const featuredBusinesses = businesses.filter((b) => b.featuredBusiness === true);
 
   // 🔹 Jedinstvene kategorije
-  const uniqueCategories = Array.from(new Set(featuredBusinesses.map((b) => b.categoryId)));
+  const uniqueCategories = Array.from(new Set(featuredBusinesses.map((b) => b.categoryId).filter((cat): cat is string => cat !== undefined)));
 
   // 🔹 Filtriraj biznise po selektovanoj kategoriji
   const filteredBusinesses = selectedCategory
@@ -69,6 +69,7 @@ export default function CategorySection({ businesses }: Props) {
       {uniqueCategories.length > 0 && (
         <div className="flex flex-wrap justify-center gap-3 mb-12">
           <button
+            key="all"
             onClick={() => setSelectedCategory(null)}
             className={`px-4 py-2 rounded-full text-sm font-medium border ${
               selectedCategory === null
@@ -129,9 +130,10 @@ export default function CategorySection({ businesses }: Props) {
                 {/* FRONT */}
                 <div className="relative w-full h-[35vh] md:h-[45vh] rounded-2xl">
                   <Image
-                    src={b.images[0] || "https://dummyimage.com/720x540"}
+                    src={(b.images && Array.isArray(b.images) && b.images[0]) || "https://dummyimage.com/720x540"}
                     alt={b.name}
                     fill
+                    sizes="(max-width: 768px) 50vw, 33vw"
                     className="object-cover w-full h-full rounded-2xl"
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/80 to-transparent p-4 flex flex-col gap-2 text-white rounded-b-2xl">
@@ -159,9 +161,10 @@ export default function CategorySection({ businesses }: Props) {
                 {backBiz && (
                   <div className="relative w-full h-[35vh] md:h-[45vh] rounded-2xl">
                     <Image
-                      src={backBiz.images[0] || "https://dummyimage.com/720x540"}
+                      src={(backBiz.images && Array.isArray(backBiz.images) && backBiz.images[0]) || "https://dummyimage.com/720x540"}
                       alt={backBiz.name}
                       fill
+                      sizes="(max-width: 768px) 50vw, 33vw"
                       className="object-cover w-full h-full rounded-2xl"
                     />
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/80 to-transparent p-4 flex flex-col gap-2 text-white rounded-b-2xl">

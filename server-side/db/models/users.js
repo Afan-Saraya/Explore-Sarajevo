@@ -13,7 +13,7 @@ async function register(username, email, password) {
       .from('users')
       .insert([{ username, email, password_hash: passwordHash }])
       .select('id, username, email, role, created_at')
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error('Supabase register error:', error);
@@ -80,7 +80,7 @@ async function getUserById(id) {
       .from('users')
       .select('id, username, email, role, created_at')
       .eq('id', id)
-      .single();
+      .maybeSingle();
     
     if (error) throw error;
     return data;

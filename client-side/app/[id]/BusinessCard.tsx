@@ -24,7 +24,7 @@ export default function MapBusinessCard({ business }: { business: Business }) {
     <div className="relative w-full h-[45vh] rounded-2xl border border-gray-200 overflow-hidden shadow-md transition hover:shadow-xl">
       {/* Slika */}
       <Image
-        src={business.images?.[0] || "https://dummyimage.com/720x540"}
+        src={(business.images && Array.isArray(business.images) && business.images[0]) || "https://dummyimage.com/720x540"}
         alt={business.name}
         fill
         className="object-cover w-full h-full rounded-2xl"

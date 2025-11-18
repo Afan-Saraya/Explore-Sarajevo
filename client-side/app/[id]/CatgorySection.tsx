@@ -77,7 +77,9 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
       <div className="md:flex items-center justify-between p-5 pb-1">
         <div>
           <h5 className="p-5 pb-1 font-bold text-[5vh]">{categoryId}</h5>
-          <p className="pb-5 text-[2vh]">{categoryDescription[0].description}</p>
+          {categoryDescription && categoryDescription[0] && (
+            <p className="pb-5 text-[2vh]">{categoryDescription[0].description}</p>
+          )}
         </div>
         {/* Strelice za flip */}
         <div className="flex justify-center md:justify-end space-x-3 pb-5 md:pb-0">
@@ -137,7 +139,7 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
                 {/* FRONT */}
                 <div className="relative w-full h-[35vh] md:h-[45vh] rounded-2xl">
                   <Image
-                    src={b.images[0] || "https://dummyimage.com/720x540"}
+                    src={(b.images && Array.isArray(b.images) && b.images[0]) || "https://dummyimage.com/720x540"}
                     alt={b.name}
                     fill
                     className="object-cover w-full h-full rounded-2xl"
@@ -166,7 +168,7 @@ export default function CategorySectionByCategory({ businesses, categoryId, cate
                 {backBiz && (
                   <div className="relative w-full h-[35vh] md:h-[45vh] rounded-2xl">
                     <Image
-                      src={backBiz.images[0] || "https://dummyimage.com/720x540"}
+                      src={(backBiz.images && Array.isArray(backBiz.images) && backBiz.images[0]) || "https://dummyimage.com/720x540"}
                       alt={backBiz.name}
                       fill
                       className="object-cover w-full h-full rounded-2xl"

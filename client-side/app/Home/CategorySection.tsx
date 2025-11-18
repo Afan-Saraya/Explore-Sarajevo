@@ -77,7 +77,7 @@ export default function CategorySection({ categories }: Props) {
 
         return (
           <Link
-            key={cat.id}
+            key={`category-${cat.id}-${index}`}
             href={`/${cat.slug}`} // ✅ vodi na /[idCategory]/page.tsx
             className={`
               relative overflow-hidden rounded-2xl border border-gray-200
@@ -90,7 +90,8 @@ export default function CategorySection({ categories }: Props) {
               src={cat.coverImage || "https://dummyimage.com/720x540"}
               alt={cat.name}
               fill
-              className="object-cover"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover rounded-2xl"
             />
 
             {/* Tamni overlay */}

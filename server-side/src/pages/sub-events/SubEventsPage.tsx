@@ -1,29 +1,31 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, MapPin, Image as ImageIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
+import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
-import { attractionsApi } from '@/api/attractionsApi';
+import { eventsApi } from '@/api/eventsApi';
 import { categoriesApi } from '@/api/categoriesApi';
 import { typesApi } from '@/api/typesApi';
-import type { Attraction, Category, Type } from '@/types/content';
+import type { SubEvent, Event, Category, Type } from '@/types/content';
 
-export default function AttractionsPage() {
-  const [attractions, setAttractions] = useState<Attraction[]>([]);
+export default function SubEventsPage() {
+  const [subEvents, setSubEvents] = useState<SubEvent[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [types, setTypes] = useState<Type[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAttraction, setEditingAttraction] = useState<Attraction | null>(null);
+  const [editingSubEvent, setEditingSubEvent] = useState<SubEvent | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
-    slug: '',
-    address: '',
-    location: '',
+    event_id: '',
     description: '',
     media: null as File | null,
-    featured_location: false,
+    start_date: '',
+    end_date: '',
+    status: 'draft',
+    show_event: true,
     category_ids: [] as number[],
     type_ids: [] as number[],
   });
@@ -36,14 +38,16 @@ export default function AttractionsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [attractionsData, categoriesData, typesData] = await Promise.all([
-        attractionsApi.getAll(),
+      const [eventsData, categoriesData, typesData, subEventsData] = await Promise.all([
+        eventsApi.getAll(),
         categoriesApi.getAll(),
         typesApi.getAll(),
+        eventsApi.getSubEvents(),
       ]);
-      setAttractions(attractionsData);
+      setEvents(eventsData);
       setCategories(categoriesData);
       setTypes(typesData);
+      setSubEvents(subEventsData);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -51,30 +55,30 @@ export default function AttractionsPage() {
     }
   };
 
-  const handleOpenModal = (attraction?: Attraction) => {
-    if (attraction) {
-      setEditingAttraction(attraction);
+  const handleOpenModal = (subEvent?: SubEvent) => {
+    if (subEvent) {
+      setEditingSubEvent(subEvent);
       setFormData({
-        name: attraction.name,
-        slug: attraction.slug || '',
-        address: attraction.address || '',
-        location: attraction.location || '',
-        description: attraction.description || '',
+        event_id: subEvent.event_id?.toString() || '',
+        description: subEvent.description || '',
         media: null,
-        featured_location: attraction.featured_location || false,
-        category_ids: attraction.category_ids || [],
-        type_ids: attraction.type_ids || [],
+        start_date: subEvent.start_date || '',
+        end_date: subEvent.end_date || '',
+        status: subEvent.status || 'draft',
+        show_event: subEvent.show_event ?? true,
+        category_ids: [],
+        type_ids: [],
       });
     } else {
-      setEditingAttraction(null);
+      setEditingSubEvent(null);
       setFormData({
-        name: '',
-        slug: '',
-        address: '',
-        location: '',
+        event_id: '',
         description: '',
         media: null,
-        featured_location: false,
+        start_date: '',
+        end_date: '',
+        status: 'draft',
+        show_event: true,
         category_ids: [],
         type_ids: [],
       });
@@ -84,7 +88,7 @@ export default function AttractionsPage() {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setEditingAttraction(null);
+    setEditingSubEvent(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,42 +117,40 @@ export default function AttractionsPage() {
       }
 
       const submitData: any = {
-        name: formData.name,
-        slug: formData.slug,
-        address: formData.address,
-        location: formData.location,
+        event_id: parseInt(formData.event_id),
         description: formData.description,
-        featured_location: formData.featured_location,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        status: formData.status,
+        show_event: formData.show_event,
         media: mediaUrl,
-        category_ids: formData.category_ids,
-        type_ids: formData.type_ids,
       };
 
-      if (editingAttraction) {
-        await attractionsApi.update(editingAttraction.id, submitData);
+      if (editingSubEvent) {
+        await eventsApi.updateSubEvent(editingSubEvent.id, submitData);
       } else {
-        await attractionsApi.create(submitData);
+        await eventsApi.createSubEvent(submitData);
       }
 
       handleCloseModal();
       loadData();
     } catch (error) {
-      console.error('Failed to save attraction:', error);
-      alert('Failed to save attraction. Please try again.');
+      console.error('Failed to save sub-event:', error);
+      alert('Failed to save sub-event. Please try again.');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this attraction?')) return;
+  const handleDelete = async (subEventId: number) => {
+    if (!confirm('Are you sure you want to delete this sub-event?')) return;
 
     try {
-      await attractionsApi.delete(id);
+      await eventsApi.deleteSubEvent(subEventId);
       loadData();
     } catch (error) {
-      console.error('Failed to delete attraction:', error);
-      alert('Failed to delete attraction. Please try again.');
+      console.error('Failed to delete sub-event:', error);
+      alert('Failed to delete sub-event. Please try again.');
     }
   };
 
@@ -170,24 +172,34 @@ export default function AttractionsPage() {
     }));
   };
 
+  const getEventName = (eventId?: number) => {
+    const event = events.find((e) => e.id === eventId);
+    return event ? event.name : '-';
+  };
+
+  const formatDate = (date?: string) => {
+    if (!date) return '-';
+    return new Date(date).toLocaleDateString();
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Attractions</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Sub-events</h1>
         <Button variant="primary" onClick={() => handleOpenModal()}>
           <Plus className="h-4 w-4 mr-2" />
-          Add Attraction
+          Add Sub-event
         </Button>
       </div>
 
       <div className="bg-white rounded-lg shadow">
         {loading ? (
           <div className="p-8 text-center text-gray-500">
-            <p>Loading attractions...</p>
+            <p>Loading sub-events...</p>
           </div>
-        ) : attractions.length === 0 ? (
+        ) : subEvents.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            <p>No attractions found. Click "Add Attraction" to create your first attraction.</p>
+            <p>No sub-events found. Click "Add Sub-event" to create your first sub-event.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -195,16 +207,16 @@ export default function AttractionsPage() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                    Parent Event
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Address
+                    Description
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Location
+                    Date Range
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Featured
+                    Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Media
@@ -215,31 +227,30 @@ export default function AttractionsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {attractions.map((attraction) => (
-                  <tr key={attraction.id} className="hover:bg-gray-50">
+                {subEvents.map((subEvent) => (
+                  <tr key={subEvent.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 text-gray-400 mr-2" />
-                        {attraction.name}
-                      </div>
+                      {getEventName(subEvent.event_id)}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                      {attraction.address || '-'}
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      <div className="max-w-xs truncate">{subEvent.description || '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {attraction.location || '-'}
+                      {formatDate(subEvent.start_date)} - {formatDate(subEvent.end_date)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {attraction.featured_location ? (
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                          Featured
-                        </span>
-                      ) : (
-                        '-'
-                      )}
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          subEvent.status === 'published'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {subEvent.status}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {attraction.media ? (
+                      {subEvent.media ? (
                         <ImageIcon className="h-5 w-5 text-green-500" />
                       ) : (
                         '-'
@@ -247,13 +258,13 @@ export default function AttractionsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
-                        onClick={() => handleOpenModal(attraction)}
+                        onClick={() => handleOpenModal(subEvent)}
                         className="text-blue-600 hover:text-blue-900 mr-4"
                       >
                         <Pencil className="h-4 w-4 inline" />
                       </button>
                       <button
-                        onClick={() => handleDelete(attraction.id)}
+                        onClick={() => handleDelete(subEvent.id)}
                         className="text-red-600 hover:text-red-900"
                       >
                         <Trash2 className="h-4 w-4 inline" />
@@ -270,47 +281,29 @@ export default function AttractionsPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={editingAttraction ? 'Edit Attraction' : 'Add Attraction'}
+        title={editingSubEvent ? 'Edit Sub-event' : 'Add Sub-event'}
         size="xl"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Name"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Enter attraction name"
-            />
-
-            <Input
-              label="Slug"
-              value={formData.slug}
-              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-              placeholder="attraction-slug"
-            />
-          </div>
-
-          <Input
-            label="Address"
-            value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            placeholder="Enter attraction address"
-          />
-
-          <Input
-            label="Location"
-            value={formData.location}
-            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-            placeholder="Enter location coordinates"
-            helperText="Format: latitude,longitude"
-          />
+          <Select
+            label="Parent Event"
+            required
+            value={formData.event_id}
+            onChange={(e) => setFormData({ ...formData, event_id: e.target.value })}
+          >
+            <option value="">Select an event</option>
+            {events.map((event) => (
+              <option key={event.id} value={event.id}>
+                {event.name}
+              </option>
+            ))}
+          </Select>
 
           <Textarea
             label="Description"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Enter attraction description"
+            placeholder="Enter sub-event description"
             rows={4}
           />
 
@@ -324,18 +317,46 @@ export default function AttractionsPage() {
             />
           </div>
 
-          <div>
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={formData.featured_location}
-                onChange={(e) =>
-                  setFormData({ ...formData, featured_location: e.target.checked })
-                }
-                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-              />
-              <span className="text-sm font-medium text-gray-700">Featured Location</span>
-            </label>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Start Date"
+              type="datetime-local"
+              value={formData.start_date}
+              onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+            />
+
+            <Input
+              label="End Date"
+              type="datetime-local"
+              value={formData.end_date}
+              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Status"
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            >
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
+            </Select>
+
+            <div className="flex items-end">
+              <label className="flex items-center space-x-2 mb-2">
+                <input
+                  type="checkbox"
+                  checked={formData.show_event}
+                  onChange={(e) =>
+                    setFormData({ ...formData, show_event: e.target.checked })
+                  }
+                  className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Show Event</span>
+              </label>
+            </div>
           </div>
 
           <div>
@@ -377,7 +398,7 @@ export default function AttractionsPage() {
               Cancel
             </Button>
             <Button type="submit" variant="primary" isLoading={saving}>
-              {editingAttraction ? 'Update' : 'Create'} Attraction
+              {editingSubEvent ? 'Update' : 'Create'} Sub-event
             </Button>
           </div>
         </form>

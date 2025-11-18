@@ -25,7 +25,21 @@ export default function DistrictSection({ businesses, brandName }: Props) {
 
   // Filtriraj samo biznise s odgovarajućim brandom
   const filteredByBrand = businesses.filter(
-    (b) => b.brandId?.toLowerCase() === brandName.toLowerCase()
+    (b) => {
+      // Check brandSlug first (most reliable from API)
+      if (b.brandSlug) {
+        return b.brandSlug.toLowerCase() === brandName.toLowerCase();
+      }
+      // Fallback to brandName
+      if (b.brandName) {
+        return b.brandName.toLowerCase() === brandName.toLowerCase();
+      }
+      // Legacy: check brandId as string
+      if (typeof b.brandId === 'string') {
+        return b.brandId.toLowerCase() === brandName.toLowerCase();
+      }
+      return false;
+    }
   );
 
   const filteredBusinesses = selectedCategory
@@ -96,9 +110,9 @@ export default function DistrictSection({ businesses, brandName }: Props) {
             >
               <ReactCardFlip isFlipped={flipped} flipDirection="horizontal">
                 {/* FRONT */}
-                <div className="relative w-full h-[35vh] md:h-[45vh] max-sm:aspect-[4/6] aspect-[16/10] rounded-2xl">
+                  <div className="relative w-full h-[35vh] md:h-[45vh] max-sm:aspect-[4/6] aspect-[16/10] rounded-2xl">
                   <Image
-                    src={b.images[0] || "https://dummyimage.com/720x540"}
+                    src={(b.images && Array.isArray(b.images) && b.images[0]) || "https://dummyimage.com/720x540"}
                     alt={b.name}
                     fill
                     className="object-cover w-full h-full rounded-2xl"
@@ -126,7 +140,7 @@ export default function DistrictSection({ businesses, brandName }: Props) {
                 {backBiz && (
                   <div className="relative w-full h-[35vh] md:h-[45vh] max-sm:aspect-[4/6] aspect-[16/10] rounded-2xl">
                     <Image
-                      src={backBiz.images[0] || "https://dummyimage.com/720x540"}
+                      src={(backBiz.images && Array.isArray(backBiz.images) && backBiz.images[0]) || "https://dummyimage.com/720x540"}
                       alt={backBiz.name}
                       fill
                       className="object-cover w-full h-full rounded-2xl"

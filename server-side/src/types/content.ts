@@ -4,6 +4,7 @@ export interface Category {
   slug: string;
   description?: string;
   image?: string;
+  featured_category?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -28,6 +29,7 @@ export interface Brand {
   brand_pdv?: string;
   business_id?: string;
   business_count?: number;
+  media?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -63,6 +65,7 @@ export interface Attraction {
   address?: string;
   location?: string;
   featured_location?: boolean;
+  media?: string;
   categories?: Category[];
   types?: Type[];
   category_ids?: number[];
@@ -80,6 +83,7 @@ export interface Event {
   end_date?: string;
   status: 'draft' | 'published' | 'archived';
   show_date_range?: boolean;
+  media?: string;
   categories?: Category[];
   types?: Type[];
   category_ids?: number[];
@@ -97,6 +101,7 @@ export interface SubEvent {
   end_date?: string;
   status: 'draft' | 'published';
   show_event?: boolean;
+  media?: string;
   categories?: Category[];
   types?: Type[];
   category_ids?: number[];

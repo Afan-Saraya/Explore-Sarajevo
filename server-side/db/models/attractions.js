@@ -24,8 +24,10 @@ async function getAllAttractions(filters = {}) {
   return data.map(attraction => ({
     ...attraction,
     categories: attraction.attraction_categories.map(ac => ac.category).filter(Boolean),
+    category_ids: attraction.attraction_categories.map(ac => ac.category?.id).filter(Boolean),
     attraction_categories: undefined,
     types: attraction.attraction_types.map(at => at.type).filter(Boolean),
+    type_ids: attraction.attraction_types.map(at => at.type?.id).filter(Boolean),
     attraction_types: undefined
   }));
 }
@@ -44,8 +46,10 @@ async function getAttractionById(id) {
   return {
     ...data,
     categories: data.attraction_categories.map(ac => ac.category).filter(Boolean),
+    category_ids: data.attraction_categories.map(ac => ac.category?.id).filter(Boolean),
     attraction_categories: undefined,
     types: data.attraction_types.map(at => at.type).filter(Boolean),
+    type_ids: data.attraction_types.map(at => at.type?.id).filter(Boolean),
     attraction_types: undefined
   };
 }

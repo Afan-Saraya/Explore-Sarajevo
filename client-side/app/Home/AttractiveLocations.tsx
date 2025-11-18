@@ -91,16 +91,23 @@ export default function AttractiveLocations({ attractive_locations }: Props) {
                 {/* FRONT */}
                 <div className="relative w-full h-[35vh] md:h-[45vh] rounded-2xl">
                   <Image
-                    src={b.images?.[0] || "https://dummyimage.com/720x540"}
+                    src={(b.images && Array.isArray(b.images) && b.images[0]) || "https://dummyimage.com/720x540"}
                     alt={b.name}
                     fill
+                    sizes="(max-width: 768px) 50vw, 33vw"
                     className="object-cover w-full h-full rounded-2xl"
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/80 to-transparent p-4 flex flex-col gap-2 text-white rounded-b-2xl">
                     <h3 className="text-[2vh] font-semibold">{b.name}</h3>
-                    <div className="flex items-center gap-2 text-[1.3vh] opacity-90">
-                      {b.categoryId}
-                    </div>
+                    {b.categories && b.categories.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {b.categories.map((cat) => (
+                          <span key={cat.id} className="px-2 py-0.5 text-[1.1vh] bg-white/20 backdrop-blur-sm rounded-full">
+                            {cat.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-[1.3vh] opacity-90">
                         <MapPin className="w-4 h-4" />
@@ -114,16 +121,23 @@ export default function AttractiveLocations({ attractive_locations }: Props) {
                 {backBiz && (
                   <div className="relative w-full h-[35vh] md:h-[45vh] rounded-2xl">
                     <Image
-                      src={backBiz.images?.[0] || "https://dummyimage.com/720x540"}
+                      src={(backBiz.images && Array.isArray(backBiz.images) && backBiz.images[0]) || "https://dummyimage.com/720x540"}
                       alt={backBiz.name}
                       fill
+                      sizes="(max-width: 768px) 50vw, 33vw"
                       className="object-cover w-full h-full rounded-2xl"
                     />
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/80 to-transparent p-4 flex flex-col gap-2 text-white rounded-b-2xl">
                       <h3 className="text-[2vh] font-semibold">{backBiz.name}</h3>
-                      <div className="flex items-center gap-2 text-[1.3vh] opacity-90">
-                        {backBiz.categoryId}
-                      </div>
+                      {backBiz.categories && backBiz.categories.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {backBiz.categories.map((cat) => (
+                            <span key={cat.id} className="px-2 py-0.5 text-[1.1vh] bg-white/20 backdrop-blur-sm rounded-full">
+                              {cat.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-[1.3vh] opacity-90">
                           <MapPin className="w-4 h-4" />

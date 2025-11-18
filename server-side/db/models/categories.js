@@ -5,7 +5,7 @@ async function getAllCategories() {
   const { data, error } = await supabase
     .from('categories')
     .select('*')
-    .order('name', { ascending: true });
+    .order('display_order', { ascending: true });
   
   if (error) throw error;
   return data || [];
@@ -17,7 +17,7 @@ async function getCategoryById(id) {
     .from('categories')
     .select('*')
     .eq('id', id)
-    .single();
+    .maybeSingle();
   
   if (error) throw error;
   return data;
@@ -25,7 +25,7 @@ async function getCategoryById(id) {
 
 // Create category
 async function createCategory(data) {
-  const { name, slug, description, image } = data;
+  const { name, slug, description, image, featured_category } = data;
   
   const { data: category, error } = await supabase
     .from('categories')
@@ -33,10 +33,11 @@ async function createCategory(data) {
       name,
       slug: slug || generateSlug(name),
       description: description || '',
-      image: image || null
+      image: image || null,
+      featured_category: featured_category || false
     }])
     .select()
-    .single();
+    .maybeSingle();
   
   if (error) throw error;
   return category;
@@ -44,11 +45,12 @@ async function createCategory(data) {
 
 // Update category
 async function updateCategory(id, data) {
-  const { name, slug, description, image } = data;
+  const { name, slug, description, image, featured_category } = data;
   
   // Build update object with only provided fields
   const updates = {};
   if (name !== undefined) updates.name = name;
+  if (featured_category !== undefined) updates.featured_category = featured_category;
   if (slug !== undefined) updates.slug = slug;
   if (description !== undefined) updates.description = description;
   if (image !== undefined) updates.image = image;
@@ -58,7 +60,7 @@ async function updateCategory(id, data) {
     .update(updates)
     .eq('id', id)
     .select()
-    .single();
+    .maybeSingle();
   
   if (error) throw error;
   return category;
@@ -87,6 +89,29 @@ async function getCategoryUsageCount(id) {
   return (businessCount.count || 0) + (attractionCount.count || 0) + (eventCount.count || 0) + (subEventCount.count || 0);
 }
 
+// Reorder categories
+async function reorderCategories(orderedIds) {
+  // Update display_order for each category sequentially to avoid conflicts
+  try {
+    for (let i = 0; i < orderedIds.length; i++) {
+      const { error } = await supabase
+        .from('categories')
+        .update({ display_order: i })
+        .eq('id', orderedIds[i]);
+      
+      if (error) {
+        console.error('Error updating category order:', error);
+        throw error;
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Reorder categories error:', error);
+    throw error;
+  }
+}
+
 // Helper: generate slug from name
 function generateSlug(name) {
   return name
@@ -102,5 +127,6 @@ module.exports = {
   createCategory,
   updateCategory,
   deleteCategory,
-  getCategoryUsageCount
+  getCategoryUsageCount,
+  reorderCategories
 };

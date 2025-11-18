@@ -35,11 +35,14 @@ export default function MapHero({
   useEffect(() => {
     if (filteredBusinesses.length === 0) return;
 
-    const lats = filteredBusinesses.map((b) =>
-      Number(b.location.split(",")[0])
+    const businessesWithLocation = filteredBusinesses.filter((b) => b.location);
+    if (businessesWithLocation.length === 0) return;
+
+    const lats = businessesWithLocation.map((b) =>
+      Number(b.location!.split(",")[0])
     );
-    const lngs = filteredBusinesses.map((b) =>
-      Number(b.location.split(",")[1])
+    const lngs = businessesWithLocation.map((b) =>
+      Number(b.location!.split(",")[1])
     );
 
     const minLat = Math.min(...lats);
@@ -76,17 +79,19 @@ export default function MapHero({
       {/* 🗺️ Mapa */}
       <section className="relative w-full h-[55vh] overflow-hidden rounded-none">
         <Map center={center} zoom={zoom} height={mapHeight}>
-          {filteredBusinesses.map((b) => {
-            const [lat, lng] = b.location.split(",").map(Number);
-            return (
-              <Marker
-                key={b.id}
-                anchor={[lat, lng]}
-                color={selectedBusiness?.id === b.id ? "#a855f7" : "#9333ea"}
-                onClick={() => handleMarkerClick(b)}
-              />
-            );
-          })}
+          {filteredBusinesses
+            .filter((b) => b.location)
+            .map((b) => {
+              const [lat, lng] = b.location!.split(",").map(Number);
+              return (
+                <Marker
+                  key={b.id}
+                  anchor={[lat, lng]}
+                  color={selectedBusiness?.id === b.id ? "#a855f7" : "#9333ea"}
+                  onClick={() => handleMarkerClick(b)}
+                />
+              );
+            })}
         </Map>
       </section>
 
