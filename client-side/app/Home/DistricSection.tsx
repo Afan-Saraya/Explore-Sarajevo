@@ -5,10 +5,11 @@ import { useState, useEffect } from "react";
 import { Business } from "../lib/types";
 import { MapPin } from "lucide-react";
 import ReactCardFlip from "react-card-flip";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 interface Props {
   businesses: Business[];
-  brandName: string; // 👈 novi prop
+  brandName: string;
 }
 
 export default function DistrictSection({ businesses, brandName }: Props) {
@@ -17,51 +18,34 @@ export default function DistrictSection({ businesses, brandName }: Props) {
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
 
-  // Update vremena svake minute
+  const minVisible = 4; // minimalno 4 kartice
+
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Filtriraj samo biznise s odgovarajućim brandom
-  const filteredByBrand = businesses.filter(
-    (b) => {
-      // Check brandSlug first (most reliable from API)
-      if (b.brandSlug) {
-        return b.brandSlug.toLowerCase() === brandName.toLowerCase();
-      }
-      // Fallback to brandName
-      if (b.brandName) {
-        return b.brandName.toLowerCase() === brandName.toLowerCase();
-      }
-      // Legacy: check brandId as string
-      if (typeof b.brandId === 'string') {
-        return b.brandId.toLowerCase() === brandName.toLowerCase();
-      }
-      return false;
-    }
-  );
+  const filteredByBrand = businesses.filter((b) => {
+    if (b.brandSlug) return b.brandSlug.toLowerCase() === brandName.toLowerCase();
+    if (b.brandName) return b.brandName.toLowerCase() === brandName.toLowerCase();
+    if (typeof b.brandId === "string") return b.brandId.toLowerCase() === brandName.toLowerCase();
+    return false;
+  });
 
   const filteredBusinesses = selectedCategory
     ? filteredByBrand.filter((b) => b.slug === selectedCategory)
     : filteredByBrand;
 
-  // Automatski flip i promjena seta kartica
-  useEffect(() => {
-    if (filteredBusinesses.length === 0) return;
-    const flipInterval = setInterval(() => {
-      setFlipped(true);
-      setTimeout(() => {
-        setVisibleIndex((prev) => (prev + 4) % filteredBusinesses.length);
-        setFlipped(false);
-      }, 700);
-    }, 5000);
-    return () => clearInterval(flipInterval);
-  }, [filteredBusinesses.length]);
+  const visibleBusinesses = filteredBusinesses.slice(
+    visibleIndex,
+    visibleIndex + minVisible
+  );
 
-  const visibleBusinesses = filteredBusinesses.slice(visibleIndex, visibleIndex + 4);
+  // Dopuni kartice ako ih nema dovoljno
+  while (visibleBusinesses.length < minVisible && filteredBusinesses.length > 0) {
+    visibleBusinesses.push(filteredBusinesses[visibleBusinesses.length % filteredBusinesses.length]);
+  }
 
-  // Provjera radnog vremena
   function isOpenNow(workingHours?: string) {
     if (!workingHours) return false;
     const now = new Date();
@@ -75,9 +59,53 @@ export default function DistrictSection({ businesses, brandName }: Props) {
     return totalNow >= totalStart && totalNow <= totalEnd;
   }
 
+  // Flip interval identičan CategorySection
+  useEffect(() => {
+    if (filteredBusinesses.length <= minVisible) return;
+    const flipInterval = setInterval(() => {
+      setFlipped(true);
+      setTimeout(() => {
+        setVisibleIndex((prev) => (prev + minVisible) % filteredBusinesses.length);
+        setFlipped(false);
+      }, 700);
+    }, 5000);
+    return () => clearInterval(flipInterval);
+  }, [filteredBusinesses.length]);
+
   return (
     <div className="mt-5 text-black md:text-start text-center">
-      <Image className="p-5" src="/assets/visitBjelasnicaLogo.png" width={400} height={40} alt="" />
+      <Image
+        src="/assets/visitBjelasnicaLogo.png"
+        width={400}
+        height={40}
+        alt=""
+      />
+
+      {/* Naslov i strelice */}
+      <div className="md:flex items-center justify-between px-5 mb-4 flex">
+        <div className="flex md:justify-end space-x-3" style={{ marginLeft: "auto" }}>
+          <button
+            onClick={() =>
+              setVisibleIndex((prev) =>
+                (prev - minVisible + filteredBusinesses.length) % filteredBusinesses.length
+              )
+            }
+            className="bg-purple-600 p-2 rounded-full shadow-md hover:bg-purple-500 transition-colors"
+            aria-label="Previous"
+          >
+            <FaChevronLeft className="text-white" />
+          </button>
+          <button
+            onClick={() =>
+              setVisibleIndex((prev) => (prev + minVisible) % filteredBusinesses.length)
+            }
+            className="bg-purple-600 p-2 rounded-full shadow-md hover:bg-purple-500 transition-colors"
+            aria-label="Next"
+          >
+            <FaChevronRight className="text-white" />
+          </button>
+        </div>
+      </div>
 
       {/* Grid kartica */}
       <div
@@ -97,20 +125,20 @@ export default function DistrictSection({ businesses, brandName }: Props) {
             (isEvenRow && index % 2 === 0) || (!isEvenRow && index % 2 === 1);
           const isWideMobile = index % 3 === 0;
 
-          const backIndex = (visibleIndex + index + 4) % filteredBusinesses.length;
+          const backIndex = (visibleIndex + index + minVisible) % filteredBusinesses.length;
           const backBiz = filteredBusinesses[backIndex];
 
           return (
             <div
-              key={b.id}
+              key={`${b.id}-${index}`}
               className={`relative border border-gray-200 rounded-2xl snap-center
                 ${isWideDesktop ? "md:col-span-2" : "md:col-span-1"}
                 ${isWideMobile ? "col-span-2" : "col-span-1"}
               `}
             >
-              <ReactCardFlip isFlipped={flipped} flipDirection="horizontal">
+              <ReactCardFlip isFlipped={flipped && !!backBiz} flipDirection="horizontal">
                 {/* FRONT */}
-                  <div className="relative w-full h-[35vh] md:h-[45vh] max-sm:aspect-[4/6] aspect-[16/10] rounded-2xl">
+                <div className="relative w-full h-[35vh] md:h-[45vh] max-sm:aspect-[4/6] aspect-[16/10] rounded-2xl">
                   <Image
                     src={(b.images && Array.isArray(b.images) && b.images[0]) || "https://dummyimage.com/720x540"}
                     alt={b.name}

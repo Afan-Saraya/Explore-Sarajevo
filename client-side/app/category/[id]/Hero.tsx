@@ -128,7 +128,7 @@ export default function Hero({ categories, categoryId, businesses }: Props) {
   return (
     <section className="relative mt-15 flex flex-col justify-center items-center w-full bg-white pt-2 overflow-hidden space-y-2">
       {/* PRVI RED — Parni featured (lijevo) + kategorija (desno) */}
-      <div className="relative w-full max-w-7xl grid grid-cols-2 md:grid-cols-3 gap-1 h-[13rem] md:h-[25rem] rounded-2xl overflow-hidden">
+      <div className="relative w-full max-w-7xl grid grid-cols-2 md:grid-cols-3 gap-1 h-[28vh] md:h-[40vh] rounded-2xl overflow-hidden">
         {/* Lijevo — Parni featured */}
         <div className="relative col-span-1 md:col-span-2 h-full overflow-hidden rounded-l-2xl md:rounded-l-2xl">
           <AnimatePresence mode="wait">
@@ -210,7 +210,7 @@ export default function Hero({ categories, categoryId, businesses }: Props) {
       </div>
 
       {/* DRUGI RED — Neparni featured (puna širina) */}
-      <div className="relative w-full max-w-7xl h-[13rem] md:h-[25rem] overflow-hidden rounded-2xl">
+      <div className="relative w-full max-w-7xl  h-[28vh] md:h-[40vh] overflow-hidden rounded-2xl">
         <AnimatePresence mode="wait">
           <motion.div
             key={featuredOddContent.id}

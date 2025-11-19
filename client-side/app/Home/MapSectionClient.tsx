@@ -52,11 +52,11 @@ export default function MapSectionClient({ businesses }: { businesses: Business[
     <>
       {/* Naslov i filteri */}
       <section className="relative flex flex-col mt-[6vh] overflow-hidden">
-        <h5 className="p-5 font-bold text-black text-[5vh]">Istražite interesovanja na mapi Sarajeva</h5>
+        <h2 className="text-2xl text-black font-bold">📍🗺️ Istražite interesovanja na mapi</h2>
 
-        <div className="flex flex-wrap gap-2 justify-center mb-6">
+        <div className="flex flex-wrap justify-center gap-2 mb-3 mt-5">
           <button
-            key="map-all"
+            key="all"
             onClick={() => setActiveCategory(null)}
             className={`px-3 py-1.5 text-sm rounded-full border transition ${
               !activeCategory
@@ -66,9 +66,9 @@ export default function MapSectionClient({ businesses }: { businesses: Business[
           >
             Sve
           </button>
-          {uniqueCategories.map((cat, index) => (
+          {uniqueCategories.map((cat) => (
             <button
-              key={`map-cat-${cat}-${index}`}
+              key={cat}
               onClick={() => setActiveCategory(cat)}
               className={`px-3 py-1.5 text-sm rounded-full border transition ${
                 activeCategory === cat

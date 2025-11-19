@@ -5,12 +5,15 @@ import { useState, useEffect } from "react";
 import { Business } from "../lib/types";
 import { MapPin } from "lucide-react";
 import ReactCardFlip from "react-card-flip";
+import { useRouter } from "next/navigation";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 interface Props {
   businesses: Business[];
 }
 
 export default function CategorySection({ businesses }: Props) {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [visibleIndex, setVisibleIndex] = useState(0);
@@ -21,18 +24,21 @@ export default function CategorySection({ businesses }: Props) {
     return () => clearInterval(interval);
   }, []);
 
-  // 🔹 Samo featured biznisi
   const featuredBusinesses = businesses.filter((b) => b.featuredBusiness === true);
 
-  // 🔹 Jedinstvene kategorije
-  const uniqueCategories = Array.from(new Set(featuredBusinesses.map((b) => b.categoryId).filter((cat): cat is string => cat !== undefined)));
+  const uniqueCategories = Array.from(
+    new Set(
+      featuredBusinesses
+        .map((b) => b.categoryId)
+        .filter((cat): cat is string => cat !== undefined)
+    )
+  );
 
-  // 🔹 Filtriraj biznise po selektovanoj kategoriji
   const filteredBusinesses = selectedCategory
     ? featuredBusinesses.filter((b) => b.categoryId === selectedCategory)
     : featuredBusinesses;
 
-  // 🔄 Automatski flip kartica
+  // Automatski flip
   useEffect(() => {
     const flipInterval = setInterval(() => {
       setFlipped(true);
@@ -62,16 +68,41 @@ export default function CategorySection({ businesses }: Props) {
   const visibleBusinesses = filteredBusinesses.slice(visibleIndex, visibleIndex + 4);
 
   return (
-    <div className="mt-5 text-black md:text-start text-center">
-      <h5 className="p-5 font-bold text-[5vh]">Preporučujemo</h5>
+    <div className="mt-15 text-black md:text-start text-center">
+      {/* Naslov i strelice */}
+      <div className="md:flex items-center justify-between px-5 mb-4 flex">
+        <h2 className="text-2xl text-black font-bold">🌟 Preporučeno</h2>
+        <div className="flex md:justify-end space-x-3" style={{ marginLeft: 'auto' }}>
+          <button
+            onClick={() =>
+              setVisibleIndex((prev) =>
+                (prev - 4 + filteredBusinesses.length) % filteredBusinesses.length
+              )
+            }
+            className="bg-purple-600 p-2 rounded-full shadow-md hover:bg-purple-500 transition-colors"
+            aria-label="Previous"
+          >
+            <FaChevronLeft className="text-white" />
+          </button>
+          <button
+            onClick={() =>
+              setVisibleIndex((prev) => (prev + 4) % filteredBusinesses.length)
+            }
+            className="bg-purple-600 p-2 rounded-full shadow-md hover:bg-purple-500 transition-colors"
+            aria-label="Next"
+          >
+            <FaChevronRight className="text-white" />
+          </button>
+        </div>
+      </div>
 
-      {/* Filter dugmad za kategorije */}
+      {/* Filter dugmad */}
       {uniqueCategories.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-3 mb-12">
+        <div className="flex flex-wrap justify-center gap-2 mb-3">
           <button
             key="all"
             onClick={() => setSelectedCategory(null)}
-            className={`px-4 py-2 rounded-full text-sm font-medium border ${
+            className={`px-4 py-2 rounded-full text-[1.5vh] font-medium border ${
               selectedCategory === null
                 ? "bg-blue-600 text-white border-blue-600"
                 : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
@@ -79,12 +110,11 @@ export default function CategorySection({ businesses }: Props) {
           >
             Sve
           </button>
-
           {uniqueCategories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-2 rounded-full text-sm font-medium border ${
+              className={`px-4 py-2 rounded-full text-[1.5vh] font-medium border ${
                 selectedCategory === cat
                   ? "bg-blue-600 text-white border-blue-600"
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
@@ -99,13 +129,13 @@ export default function CategorySection({ businesses }: Props) {
       {/* Grid kartica */}
       <div
         className="
-        grid 
-        md:grid-cols-3 gap-2 md:gap-3
-        grid-cols-2 max-sm:grid-cols-2
-        overflow-x-auto md:overflow-visible 
-        snap-x snap-mandatory
-        scrollbar-hide
-      "
+          grid 
+          md:grid-cols-3 gap-2 md:gap-3
+          grid-cols-2 max-sm:grid-cols-2
+          overflow-x-auto md:overflow-visible 
+          snap-x snap-mandatory
+          scrollbar-hide
+        "
       >
         {visibleBusinesses.map((b, index) => {
           const pairIndex = Math.floor(index / 2);
@@ -120,7 +150,9 @@ export default function CategorySection({ businesses }: Props) {
           return (
             <div
               key={b.id}
+              onClick={() => router.push(`/${b.slug}`)}
               className={`
+                cursor-pointer
                 perspective-1000 relative border border-gray-200 rounded-2xl snap-center
                 ${isWideDesktop ? "md:col-span-2" : "md:col-span-1"}
                 ${isWideMobile ? "col-span-2" : "col-span-1"}
@@ -146,9 +178,7 @@ export default function CategorySection({ businesses }: Props) {
                       </div>
                       <span
                         className={`text-[1.3vh] font-semibold ${
-                          isOpenNow(b.workingHours)
-                            ? "text-green-400"
-                            : "text-red-500"
+                          isOpenNow(b.workingHours) ? "text-green-400" : "text-red-500"
                         }`}
                       >
                         {isOpenNow(b.workingHours) ? "Open Now" : "Closed Now"}
@@ -177,14 +207,10 @@ export default function CategorySection({ businesses }: Props) {
                         </div>
                         <span
                           className={`text-[1.3vh] font-semibold ${
-                            isOpenNow(backBiz.workingHours)
-                              ? "text-green-400"
-                              : "text-red-500"
+                            isOpenNow(backBiz.workingHours) ? "text-green-400" : "text-red-500"
                           }`}
                         >
-                          {isOpenNow(backBiz.workingHours)
-                            ? "Open Now"
-                            : "Closed Now"}
+                          {isOpenNow(backBiz.workingHours) ? "Open Now" : "Closed Now"}
                         </span>
                       </div>
                     </div>

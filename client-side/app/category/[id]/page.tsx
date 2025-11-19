@@ -2,6 +2,7 @@ import CatgorySection from "./CatgorySection";
 import Map from "./Map";
 import { getBusinesses, getCategories, getAttractions } from "../../lib/api";
 import Hero from "./Hero";
+import FilteredBusinesses from "./FilteredBusinesses";
 
 // app/[id]/page.tsx
 interface CategoryPageProps {
@@ -18,15 +19,16 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     getAttractions()
   ]);
 
-  console.log("Server params:", id,businesses);
+  console.log("Server params:", id, businesses);
 
   return (
     <div className="bg-white">
       <section className="max-w-7xl mx-auto px-6 md:px-10 py-1 bg-white overflow-hidden">
         <Hero categories={categories} categoryId={id} businesses={businesses} />
-        <Map businesses={businesses} categoryId={id} categories={categories}  />
+        <Map businesses={businesses} categoryId={id} categories={categories} />
         <CatgorySection businesses={businesses} categoryId={id} categories={categories} />
-        </section>
+        <FilteredBusinesses businesses={businesses} categoryId={id} categories={categories} />
+      </section>
     </div>
   );
 }

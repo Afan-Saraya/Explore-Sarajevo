@@ -29,31 +29,31 @@ export default function Hero() {
         />
 
         {/* Tekst */}
-        <p className="text-gray-200 text-[1.8vh] leading-[2.4vh] max-w-[90vh] mb-[3vh]">
+        <p className="text-gray-200 text-[1.8vh] leading-[2.4vh] max-w-[90vw] mb-[3vh]">
           Otkrij duh Sarajeva — pronađi mjesta, kafiće i skrivene dragulje svuda oko sebe.
         </p>
 
         {/* Lista s ikonama */}
-        <ul className="flex gap-[4vh] text-[2.5vh] text-white">
+        <ul className="flex gap-[3vh] max-w-[90vw] text-white">
           <li className="flex flex-col items-center gap-[0.8vh] cursor-pointer hover:text-purple-400 transition">
-            <Bike className="w-[3vh] h-[3vh]" />
-            <span className="text-[1.5vh]">Activities</span>
+            <Bike className="md:w-[3vh] w-[2.5vh]" />
+            <span className="md:text-[1.5vh] text-[1vh]">Activities</span>
           </li>
           <li className="flex flex-col items-center gap-[0.8vh] cursor-pointer hover:text-purple-400 transition">
-            <PartyPopper className="w-[3vh] h-[3vh]" />
-            <span className="text-[1.5vh]">Events</span>
+            <PartyPopper className="md:w-[3vh] w-[2.5vh]" />
+            <span className="md:text-[1.5vh] text-[1vh]">Events</span>
           </li>
           <li className="flex flex-col items-center gap-[0.8vh] cursor-pointer hover:text-purple-400 transition">
-            <Utensils className="w-[3vh] h-[3vh]" />
-            <span className="text-[1.5vh]">Food & Drinks</span>
+            <Utensils className="md:w-[3vh] w-[2.5vh]" />
+            <span className="md:text-[1.5vh] text-[1vh]">Food & Drinks</span>
           </li>
           <li className="flex flex-col items-center gap-[0.8vh] cursor-pointer hover:text-purple-400 transition">
-            <BedDouble className="w-[3vh] h-[3vh]" />
-            <span className="text-[1.5vh]">Accommodation</span>
+            <BedDouble className="md:w-[3vh] w-[2.5vh]" />
+            <span className="md:text-[1.5vh] text-[1vh]">Accommodation</span>
           </li>
           <li className="flex flex-col items-center gap-[0.8vh] cursor-pointer hover:text-purple-400 transition">
-            <ShieldPlus className="w-[3vh] h-[3vh]" />
-            <span className="text-[1.5vh]">Health</span>
+            <ShieldPlus className="md:w-[3vh] w-[2.5vh]" />
+            <span className="md:text-[1.5vh] text-[1vh]">Health</span>
           </li>
         </ul>
       </motion.div>

@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Business, Category } from "../../lib/types";
 import { MapPin } from "lucide-react";
 import ReactCardFlip from "react-card-flip";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 interface Props {
   businesses: Business[];
@@ -24,9 +25,11 @@ export default function CatgorySection({ businesses, categoryId, categories }: P
 
   const currentCategory = categories.find((cat) => cat.slug === categoryId);
 
-  const filteredBusinesses = businesses.filter((b) => 
-    b.categories?.some((cat) => cat.id === currentCategory?.id)
-  );
+  const filteredBusinesses = businesses.filter(
+  (b) =>
+    b.categories?.some((cat) => cat.id === currentCategory?.id) &&
+    b.featuredBusiness === true
+);
 
   // 🔄 Flip interval
   useEffect(() => {
@@ -74,28 +77,33 @@ export default function CatgorySection({ businesses, categoryId, categories }: P
 
   return (
     <div className="mt-0 text-black md:text-start text-center">
-      <div className="md:flex items-center justify-between p-5 pb-1 flex">
-        <div className="flex md:justify-end space-x-3 pb-5 md:pb-0" style={{ marginLeft: 'auto' }}>
+      {/* Naslov i strelice */}
+      <div className="md:flex items-center justify-between px-5 mb-4 flex">
+        <h2 className="text-2xl text-black font-bold">🌟 Preporučeno</h2>
+        <div className="flex md:justify-end space-x-3" style={{ marginLeft: 'auto' }}>
           <button
             onClick={() =>
               setVisibleIndex((prev) =>
                 (prev - 4 + filteredBusinesses.length) % filteredBusinesses.length
               )
             }
-            className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-800 transition-all duration-200"
+            className="bg-purple-600 p-2 rounded-full shadow-md hover:bg-purple-500 transition-colors"
+            aria-label="Previous"
           >
-            ◀
+            <FaChevronLeft className="text-white" />
           </button>
           <button
             onClick={() =>
               setVisibleIndex((prev) => (prev + 4) % filteredBusinesses.length)
             }
-            className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-800 transition-all duration-200"
+            className="bg-purple-600 p-2 rounded-full shadow-md hover:bg-purple-500 transition-colors"
+            aria-label="Next"
           >
-            ▶
+            <FaChevronRight className="text-white" />
           </button>
         </div>
       </div>
+
 
       <div
         className="

@@ -88,7 +88,7 @@ export default function MapHero({
   return (
     <div className="w-full mt-10">
       {/* 🗺️ Mapa */}
-      <section className="relative w-full h-[55vh] overflow-hidden rounded-none">
+      <section className="relative w-full overflow-hidden rounded-none">
         <Map center={center} zoom={zoom} height={mapHeight}>
           {filteredBusinesses
             .filter((b) => b.location)

@@ -17,8 +17,8 @@ export default function OurPlace() {
         </div>
 
         {/* Tekst u trećoj koloni (rotirano, sa simetričnim marginama) */}
-        <div className="flex flex-col justify-center bg-black md:mr-[20vh] md:mt-[40vh] md:ml-[-20vh] z-2 p-[2vh]">
-          <h2 className="text-[4vh] md:text-[8vh] font-bold mb-4 text-white">
+        <div className="flex flex-col justify-center bg-black md:mr-[20vh] md:mt-[40vh] md:ml-[-20vh] z-2 p-[4vh]">
+          <h2 className="text-[4vh] md:text-[3.5vh] font-bold mb-4 text-white">
             Naše mjesto
           </h2>
           <p className="text-[2vh] md:text-[2vh] text-gray-300">
