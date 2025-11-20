@@ -3,12 +3,15 @@ import { Plus, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
+import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { typesApi } from '@/api/typesApi';
-import type { Type } from '@/types/content';
+import { categoriesApi } from '@/api/categoriesApi';
+import type { Type, Category } from '@/types/content';
 
 export default function TypesPage() {
   const [types, setTypes] = useState<Type[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingType, setEditingType] = useState<Type | null>(null);
@@ -17,20 +20,25 @@ export default function TypesPage() {
     slug: '',
     description: '',
     image: null as File | null,
+    category_id: '',
   });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadTypes();
+    loadData();
   }, []);
 
-  const loadTypes = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const data = await typesApi.getAll();
-      setTypes(data);
+      const [typesData, categoriesData] = await Promise.all([
+        typesApi.getAll(),
+        categoriesApi.getAll(),
+      ]);
+      setTypes(typesData);
+      setCategories(categoriesData);
     } catch (error) {
-      console.error('Failed to load types:', error);
+      console.error('Failed to load data:', error);
     } finally {
       setLoading(false);
     }
@@ -44,6 +52,7 @@ export default function TypesPage() {
         slug: type.slug || '',
         description: type.description || '',
         image: null,
+        category_id: type.category_id?.toString() || '',
       });
     } else {
       setEditingType(null);
@@ -52,6 +61,7 @@ export default function TypesPage() {
         slug: '',
         description: '',
         image: null,
+        category_id: '',
       });
     }
     setIsModalOpen(true);
@@ -93,6 +103,7 @@ export default function TypesPage() {
         slug: formData.slug,
         description: formData.description,
         image: imageUrl,
+        category_id: formData.category_id ? parseInt(formData.category_id) : null,
       };
 
       if (editingType) {
@@ -102,7 +113,7 @@ export default function TypesPage() {
       }
 
       handleCloseModal();
-      loadTypes();
+      loadData();
     } catch (error) {
       console.error('Failed to save type:', error);
       alert('Failed to save type. Please try again.');
@@ -116,7 +127,7 @@ export default function TypesPage() {
 
     try {
       await typesApi.delete(id);
-      loadTypes();
+      loadData();
     } catch (error) {
       console.error('Failed to delete type:', error);
       alert('Failed to delete type. Please try again.');
@@ -151,6 +162,9 @@ export default function TypesPage() {
                     Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Category
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Slug
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -169,6 +183,9 @@ export default function TypesPage() {
                   <tr key={type.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {type.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {type.category?.name || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {type.slug || '-'}
@@ -219,6 +236,20 @@ export default function TypesPage() {
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="Enter type name"
           />
+
+          <Select
+            label="Category"
+            value={formData.category_id}
+            onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+            helperText="Optional: Assign this type to a parent category"
+          >
+            <option value="">None (Standalone Type)</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </Select>
 
           <Input
             label="Slug"

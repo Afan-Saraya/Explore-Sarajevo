@@ -166,8 +166,13 @@ app.get('/api/auth/me', (req, res) => {
 // Get all published businesses with categories, types, and brands
 app.get('/api/public/businesses', async (req, res) => {
   try {
+    const filters = {
+      section_id: req.query.section_id,
+      featured: req.query.featured === 'true' ? true : req.query.featured === 'false' ? false : undefined
+    };
+    
     // Use the existing businessesModel which already has proper Supabase queries
-    const businesses = await businessesModel.getAllBusinesses({});
+    const businesses = await businessesModel.getAllBusinesses(filters);
     
     // Filter and format for public consumption
     const publicBusinesses = businesses.map(b => {
@@ -189,11 +194,13 @@ app.get('/api/public/businesses', async (req, res) => {
         description: b.description || '',
         address: b.address || '',
         location: b.location || '',
-        phone: b.phone,
+        phone: b.telephone || b.phone,
+        email: b.email,
         website: b.website,
         rating: b.rating || 0,
         workingHours: b.working_hours || '',
         working_hours: b.working_hours || '', // Also include snake_case
+        priceRange: b.price_range,
         images: images,
         featuredBusiness: b.featured_business || false,
         featured_business: b.featured_business || false, // Also include snake_case
@@ -204,7 +211,8 @@ app.get('/api/public/businesses', async (req, res) => {
         categoryId: b.categories?.[0]?.name || b.categories?.[0]?.id || '',
         parentCategoryId: b.categories?.[0]?.id,
         categories: b.categories || [],
-        types: b.types || []
+        types: b.types || [],
+        sections: b.sections || []
       };
     });
     
@@ -328,26 +336,31 @@ app.get('/api/public/brands', async (req, res) => {
 // Get all types (subcategories)
 app.get('/api/public/types', async (req, res) => {
   try {
-    const types = await typesModel.getAllTypes();
-    const categories = await categoriesModel.getAllCategories();
+    const filters = {
+      category_id: req.query.category_id
+    };
+    const types = await typesModel.getAllTypes(filters);
     
-    // Add category info to each type
-    const typesWithCategory = types.map(t => {
-      const cat = categories.find(c => c.id === t.category_id);
-      return {
-        id: t.id,
-        name: t.name,
-        slug: t.slug,
-        category_id: t.category_id,
-        category_name: cat?.name,
-        category_slug: cat?.slug
-      };
-    });
-    
-    res.json(typesWithCategory);
+    res.json(types);
   } catch (error) {
     console.error('Error fetching public types:', error);
     res.status(500).json({ error: 'Failed to fetch types' });
+  }
+});
+
+// Get all sections
+app.get('/api/public/sections', async (req, res) => {
+  try {
+    const sectionsModel = require('./db/models/sections');
+    const sections = await sectionsModel.getAllSections();
+    
+    // Filter for active sections only
+    const activeSections = sections.filter(s => s.is_active !== false);
+    
+    res.json(activeSections);
+  } catch (error) {
+    console.error('Error fetching public sections:', error);
+    res.status(500).json({ error: 'Failed to fetch sections' });
   }
 });
 
@@ -576,7 +589,10 @@ app.delete('/api/categories/:id', async (req, res) => {
 
 app.get('/api/types', async (req, res) => {
   try {
-    const types = await typesModel.getAllTypes();
+    const filters = {
+      category_id: req.query.category_id
+    };
+    const types = await typesModel.getAllTypes(filters);
     res.json(types);
   } catch (err) {
     console.error(err);
@@ -624,6 +640,104 @@ app.delete('/api/types/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'failed to delete type' });
+  }
+});
+
+app.put('/api/types/reorder', async (req, res) => {
+  try {
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds)) {
+      return res.status(400).json({ error: 'orderedIds must be an array' });
+    }
+    await typesModel.reorderTypes(orderedIds);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to reorder types' });
+  }
+});
+
+// ============================================
+// SECTIONS API
+// ============================================
+
+const sectionsModel = require('./db/models/sections');
+
+app.get('/api/sections', async (req, res) => {
+  try {
+    const sections = await sectionsModel.getAllSections();
+    res.json(sections);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch sections' });
+  }
+});
+
+app.get('/api/sections/:id', async (req, res) => {
+  try {
+    const section = await sectionsModel.getSectionById(req.params.id);
+    if (!section) return res.status(404).json({ error: 'section not found' });
+    const usageCount = await sectionsModel.getSectionUsageCount(req.params.id);
+    res.json({ ...section, usage_count: usageCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch section' });
+  }
+});
+
+app.get('/api/sections/slug/:slug', async (req, res) => {
+  try {
+    const section = await sectionsModel.getSectionBySlug(req.params.slug);
+    if (!section) return res.status(404).json({ error: 'section not found' });
+    res.json(section);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to fetch section' });
+  }
+});
+
+app.post('/api/sections', async (req, res) => {
+  try {
+    const section = await sectionsModel.createSection(req.body);
+    res.status(201).json(section);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to create section' });
+  }
+});
+
+app.put('/api/sections/reorder', async (req, res) => {
+  try {
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds)) {
+      return res.status(400).json({ error: 'orderedIds must be an array' });
+    }
+    await sectionsModel.reorderSections(orderedIds);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to reorder sections' });
+  }
+});
+
+app.put('/api/sections/:id', async (req, res) => {
+  try {
+    const section = await sectionsModel.updateSection(req.params.id, req.body);
+    if (!section) return res.status(404).json({ error: 'section not found' });
+    res.json(section);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to update section' });
+  }
+});
+
+app.delete('/api/sections/:id', async (req, res) => {
+  try {
+    await sectionsModel.deleteSection(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to delete section' });
   }
 });
 

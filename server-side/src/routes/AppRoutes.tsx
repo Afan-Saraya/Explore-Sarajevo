@@ -3,6 +3,7 @@ import LoginPage from '@/pages/auth/LoginPage';
 import DashboardPage from '@/pages/dashboard/DashboardPage';
 import CategoriesPage from '@/pages/categories/CategoriesPage';
 import TypesPage from '@/pages/types/TypesPage';
+import SectionsPage from '@/pages/sections/SectionsPage';
 import BrandsPage from '@/pages/brands/BrandsPage';
 import BusinessesPage from '@/pages/businesses/BusinessesPage';
 import AttractionsPage from '@/pages/attractions/AttractionsPage';
@@ -32,6 +33,7 @@ export default function AppRoutes() {
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/types" element={<TypesPage />} />
+                <Route path="/sections" element={<SectionsPage />} />
                 <Route path="/brands" element={<BrandsPage />} />
                 <Route path="/businesses" element={<BusinessesPage />} />
                 <Route path="/attractions" element={<AttractionsPage />} />

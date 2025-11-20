@@ -1,31 +1,47 @@
 const { supabase } = require('../index');
 
 // Get all types
-async function getAllTypes() {
-  const { data, error } = await supabase
+async function getAllTypes(filters = {}) {
+  let query = supabase
     .from('types')
-    .select('*')
+    .select('*, category:categories!types_category_id_fkey(id, name, slug)')
+    .order('display_order', { ascending: true })
     .order('name', { ascending: true });
   
+  // Filter by category_id if provided
+  if (filters.category_id) {
+    query = query.eq('category_id', filters.category_id);
+  }
+  
+  const { data, error } = await query;
+  
   if (error) throw error;
-  return data;
+  return (data || []).map(type => ({
+    ...type,
+    category_name: type.category?.name || null,
+    category_slug: type.category?.slug || null
+  }));
 }
 
 // Get single type by ID
 async function getTypeById(id) {
   const { data, error } = await supabase
     .from('types')
-    .select('*')
+    .select('*, category:categories!types_category_id_fkey(id, name, slug)')
     .eq('id', id)
     .single();
   
   if (error) throw error;
-  return data;
+  return {
+    ...data,
+    category_name: data.category?.name || null,
+    category_slug: data.category?.slug || null
+  };
 }
 
 // Create type
 async function createType(data) {
-  const { name, slug, description, image } = data;
+  const { name, slug, description, image, category_id } = data;
   
   const { data: newType, error } = await supabase
     .from('types')
@@ -33,34 +49,34 @@ async function createType(data) {
       name,
       slug: slug || generateSlug(name),
       description: description || '',
-      image: image || null
+      image: image || null,
+      category_id: category_id || null
     }])
     .select()
     .single();
   
   if (error) throw error;
-  return newType;
+  return await getTypeById(newType.id);
 }
 
 // Update type
 async function updateType(id, data) {
-  const { name, slug, description, image } = data;
+  const { name, slug, description, image, category_id } = data;
   
   const updates = {};
   if (name !== undefined) updates.name = name;
   if (slug !== undefined) updates.slug = slug;
   if (description !== undefined) updates.description = description;
   if (image !== undefined) updates.image = image;
+  if (category_id !== undefined) updates.category_id = category_id;
   
-  const { data: updatedType, error } = await supabase
+  const { error } = await supabase
     .from('types')
     .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
+    .eq('id', id);
   
   if (error) throw error;
-  return updatedType;
+  return await getTypeById(id);
 }
 
 // Delete type
@@ -92,6 +108,24 @@ async function getTypeUsageCount(id) {
   return usageCount;
 }
 
+// Reorder types
+async function reorderTypes(orderedIds) {
+  try {
+    for (let i = 0; i < orderedIds.length; i++) {
+      const { error } = await supabase
+        .from('types')
+        .update({ display_order: i })
+        .eq('id', orderedIds[i]);
+      
+      if (error) throw error;
+    }
+    return true;
+  } catch (error) {
+    console.error('Reorder types error:', error);
+    throw error;
+  }
+}
+
 // Helper: generate slug from name
 function generateSlug(name) {
   return name
@@ -107,5 +141,6 @@ module.exports = {
   createType,
   updateType,
   deleteType,
-  getTypeUsageCount
+  getTypeUsageCount,
+  reorderTypes
 };

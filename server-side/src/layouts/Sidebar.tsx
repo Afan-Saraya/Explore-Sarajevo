@@ -24,7 +24,8 @@ import {
   Hand,
   Camera,
   Monitor,
-  LayoutGrid
+  LayoutGrid,
+  Layers
 } from 'lucide-react';
 
 const sites = [
@@ -48,6 +49,7 @@ const navigationBySite = {
     { section: 'TAXONOMIES', items: [
       { name: 'Categories', href: '/categories', icon: FolderTree },
       { name: 'Types', href: '/types', icon: Tag },
+      { name: 'Sections', href: '/sections', icon: Layers },
     ]},
   ],
   'hotspot': [

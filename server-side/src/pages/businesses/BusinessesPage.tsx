@@ -26,6 +26,7 @@ import { businessesApi } from '@/api/businessesApi';
 import { brandsApi } from '@/api/brandsApi';
 import { categoriesApi } from '@/api/categoriesApi';
 import { typesApi } from '@/api/typesApi';
+import { sectionsApi, Section } from '@/api/sectionsApi';
 import type { Business, Brand, Category, Type } from '@/types/content';
 
 // Sortable row component
@@ -120,6 +121,7 @@ export default function BusinessesPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [types, setTypes] = useState<Type[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
@@ -136,8 +138,11 @@ export default function BusinessesPage() {
     website: '',
     description: '',
     featured_business: false,
-    category_ids: [] as number[],
-    type_ids: [] as number[],
+    category_relationships: [] as { id: number; is_highlight: boolean; is_premium: boolean }[],
+    type_relationships: [] as { id: number; is_highlight: boolean; is_premium: boolean }[],
+    section_relationships: [] as { id: number; is_highlight: boolean; is_premium: boolean }[],
+    price_range: '',
+    email: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -155,16 +160,18 @@ export default function BusinessesPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [businessesData, brandsData, categoriesData, typesData] = await Promise.all([
+      const [businessesData, brandsData, categoriesData, typesData, sectionsData] = await Promise.all([
         businessesApi.getAll(),
         brandsApi.getAll(),
         categoriesApi.getAll(),
         typesApi.getAll(),
+        sectionsApi.getAll(),
       ]);
       setBusinesses(businessesData);
       setBrands(brandsData);
       setCategories(categoriesData);
       setTypes(typesData);
+      setSections(sectionsData);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -192,8 +199,23 @@ export default function BusinessesPage() {
         website: business.website || '',
         description: business.description || '',
         featured_business: business.featured_business || false,
-        category_ids: business.category_ids || [],
-        type_ids: business.type_ids || [],
+        category_relationships: (business.categories || []).map(c => ({
+          id: c.id,
+          is_highlight: c.is_highlight || false,
+          is_premium: c.is_premium || false
+        })),
+        type_relationships: (business.types || []).map(t => ({
+          id: t.id,
+          is_highlight: t.is_highlight || false,
+          is_premium: t.is_premium || false
+        })),
+        section_relationships: (business.sections || []).map(s => ({
+          id: s.id,
+          is_highlight: s.is_highlight || false,
+          is_premium: s.is_premium || false
+        })),
+        price_range: business.price_range || '',
+        email: business.email || '',
       });
     } else {
       setEditingBusiness(null);
@@ -210,8 +232,11 @@ export default function BusinessesPage() {
         website: '',
         description: '',
         featured_business: false,
-        category_ids: [],
-        type_ids: [],
+        category_relationships: [],
+        type_relationships: [],
+        section_relationships: [],
+        price_range: '',
+        email: '',
       });
     }
     setIsModalOpen(true);
@@ -261,8 +286,11 @@ export default function BusinessesPage() {
         description: formData.description,
         featured_business: formData.featured_business,
         media: mediaUrl,
-        category_ids: formData.category_ids,
-        type_ids: formData.type_ids,
+        category_relationships: formData.category_relationships,
+        type_relationships: formData.type_relationships,
+        section_relationships: formData.section_relationships,
+        price_range: formData.price_range,
+        email: formData.email,
       };
 
       if (editingBusiness) {
@@ -333,20 +361,80 @@ export default function BusinessesPage() {
   };
 
   const handleCategoryToggle = (categoryId: number) => {
+    setFormData((prev) => {
+      const exists = prev.category_relationships.find(r => r.id === categoryId);
+      if (exists) {
+        return {
+          ...prev,
+          category_relationships: prev.category_relationships.filter(r => r.id !== categoryId)
+        };
+      } else {
+        return {
+          ...prev,
+          category_relationships: [...prev.category_relationships, { id: categoryId, is_highlight: false, is_premium: false }]
+        };
+      }
+    });
+  };
+
+  const handleCategoryFlagToggle = (categoryId: number, flag: 'is_highlight' | 'is_premium') => {
     setFormData((prev) => ({
       ...prev,
-      category_ids: prev.category_ids.includes(categoryId)
-        ? prev.category_ids.filter((id) => id !== categoryId)
-        : [...prev.category_ids, categoryId],
+      category_relationships: prev.category_relationships.map(r =>
+        r.id === categoryId ? { ...r, [flag]: !r[flag] } : r
+      )
     }));
   };
 
   const handleTypeToggle = (typeId: number) => {
+    setFormData((prev) => {
+      const exists = prev.type_relationships.find(r => r.id === typeId);
+      if (exists) {
+        return {
+          ...prev,
+          type_relationships: prev.type_relationships.filter(r => r.id !== typeId)
+        };
+      } else {
+        return {
+          ...prev,
+          type_relationships: [...prev.type_relationships, { id: typeId, is_highlight: false, is_premium: false }]
+        };
+      }
+    });
+  };
+
+  const handleTypeFlagToggle = (typeId: number, flag: 'is_highlight' | 'is_premium') => {
     setFormData((prev) => ({
       ...prev,
-      type_ids: prev.type_ids.includes(typeId)
-        ? prev.type_ids.filter((id) => id !== typeId)
-        : [...prev.type_ids, typeId],
+      type_relationships: prev.type_relationships.map(r =>
+        r.id === typeId ? { ...r, [flag]: !r[flag] } : r
+      )
+    }));
+  };
+
+  const handleSectionToggle = (sectionId: number) => {
+    setFormData((prev) => {
+      const exists = prev.section_relationships.find(r => r.id === sectionId);
+      if (exists) {
+        return {
+          ...prev,
+          section_relationships: prev.section_relationships.filter(r => r.id !== sectionId)
+        };
+      } else {
+        return {
+          ...prev,
+          section_relationships: [...prev.section_relationships, { id: sectionId, is_highlight: false, is_premium: false }]
+        };
+      }
+    });
+  };
+
+  const handleSectionFlagToggle = (sectionId: number, flag: 'is_highlight' | 'is_premium') => {
+    setFormData((prev) => ({
+      ...prev,
+      section_relationships: prev.section_relationships.map(r =>
+        r.id === sectionId ? { ...r, [flag]: !r[flag] } : r
+      )
     }));
   };
 
@@ -517,6 +605,23 @@ export default function BusinessesPage() {
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="contact@business.com"
+            />
+
+            <Input
+              label="Price Range"
+              value={formData.price_range}
+              onChange={(e) => setFormData({ ...formData, price_range: e.target.value })}
+              placeholder="e.g., $$, 20-50 KM"
+            />
+          </div>
+
           <Textarea
             label="Description"
             value={formData.description}
@@ -557,43 +662,160 @@ export default function BusinessesPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Categories {formData.category_ids.length > 0 && (
-                <span className="text-purple-600 font-normal">({formData.category_ids.length} selected)</span>
+              Categories {formData.category_relationships.length > 0 && (
+                <span className="text-purple-600 font-normal">({formData.category_relationships.length} selected)</span>
               )}
             </label>
-            <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
-              {categories.map((category) => (
-                <label key={category.id} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.category_ids.includes(category.id)}
-                    onChange={() => handleCategoryToggle(category.id)}
-                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                  />
-                  <span className="text-sm text-gray-700">{category.name}</span>
-                </label>
-              ))}
+            <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3">
+              {categories.map((category) => {
+                const relationship = formData.category_relationships.find(r => r.id === category.id);
+                const isSelected = !!relationship;
+                return (
+                  <div key={category.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleCategoryToggle(category.id)}
+                      className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 flex-shrink-0"
+                    />
+                    <span className="text-sm text-gray-700 flex-1 min-w-0">{category.name}</span>
+                    {isSelected && (
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleCategoryFlagToggle(category.id, 'is_highlight')}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                            relationship.is_highlight
+                              ? 'bg-yellow-100 text-yellow-700 border border-yellow-300'
+                              : 'bg-gray-100 text-gray-500 border border-gray-300 hover:bg-gray-200'
+                          }`}
+                          title="Highlight in this category"
+                        >
+                          ⭐
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCategoryFlagToggle(category.id, 'is_premium')}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                            relationship.is_premium
+                              ? 'bg-purple-100 text-purple-700 border border-purple-300'
+                              : 'bg-gray-100 text-gray-500 border border-gray-300 hover:bg-gray-200'
+                          }`}
+                          title="Premium in this category"
+                        >
+                          💎
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Types {formData.type_ids.length > 0 && (
-                <span className="text-purple-600 font-normal">({formData.type_ids.length} selected)</span>
+              Types {formData.type_relationships.length > 0 && (
+                <span className="text-purple-600 font-normal">({formData.type_relationships.length} selected)</span>
               )}
             </label>
-            <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
-              {types.map((type) => (
-                <label key={type.id} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.type_ids.includes(type.id)}
-                    onChange={() => handleTypeToggle(type.id)}
-                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                  />
-                  <span className="text-sm text-gray-700">{type.name}</span>
-                </label>
-              ))}
+            <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3">
+              {types.map((type) => {
+                const relationship = formData.type_relationships.find(r => r.id === type.id);
+                const isSelected = !!relationship;
+                return (
+                  <div key={type.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleTypeToggle(type.id)}
+                      className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 flex-shrink-0"
+                    />
+                    <span className="text-sm text-gray-700 flex-1 min-w-0">{type.name}</span>
+                    {isSelected && (
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleTypeFlagToggle(type.id, 'is_highlight')}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                            relationship.is_highlight
+                              ? 'bg-yellow-100 text-yellow-700 border border-yellow-300'
+                              : 'bg-gray-100 text-gray-500 border border-gray-300 hover:bg-gray-200'
+                          }`}
+                          title="Highlight in this type"
+                        >
+                          ⭐
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleTypeFlagToggle(type.id, 'is_premium')}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                            relationship.is_premium
+                              ? 'bg-purple-100 text-purple-700 border border-purple-300'
+                              : 'bg-gray-100 text-gray-500 border border-gray-300 hover:bg-gray-200'
+                          }`}
+                          title="Premium in this type"
+                        >
+                          💎
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Sections {formData.section_relationships.length > 0 && (
+                <span className="text-purple-600 font-normal">({formData.section_relationships.length} selected)</span>
+              )}
+            </label>
+            <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3">
+              {sections.filter(s => s.is_active).map((section) => {
+                const relationship = formData.section_relationships.find(r => r.id === section.id);
+                const isSelected = !!relationship;
+                return (
+                  <div key={section.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleSectionToggle(section.id)}
+                      className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 flex-shrink-0"
+                    />
+                    <span className="text-sm text-gray-700 flex-1 min-w-0">{section.name}</span>
+                    {isSelected && (
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleSectionFlagToggle(section.id, 'is_highlight')}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                            relationship.is_highlight
+                              ? 'bg-yellow-100 text-yellow-700 border border-yellow-300'
+                              : 'bg-gray-100 text-gray-500 border border-gray-300 hover:bg-gray-200'
+                          }`}
+                          title="Highlight in this section"
+                        >
+                          ⭐
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSectionFlagToggle(section.id, 'is_premium')}
+                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                            relationship.is_premium
+                              ? 'bg-purple-100 text-purple-700 border border-purple-300'
+                              : 'bg-gray-100 text-gray-500 border border-gray-300 hover:bg-gray-200'
+                          }`}
+                          title="Premium in this section"
+                        >
+                          💎
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
